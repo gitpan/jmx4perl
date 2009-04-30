@@ -90,6 +90,7 @@ sub init {
     $ua->jjagent_config($self->{cfg});
     $ua->timeout($self->cfg-('timeout')) if $self->cfg('timeout');
     $ua->agent("JMX::Jmx4Perl::Agent $VERSION");
+    $ua->env_proxy;
     my $proxy = $self->cfg('proxy');
     if ($proxy) {
         if (ref($proxy) eq "HASH") {
@@ -113,7 +114,8 @@ sub request {
     my $url = $self->request_url($jmx_request);
     my $req = HTTP::Request->new(GET => $url);
     my $resp = $ua->request($req);
-    if ($resp->is_error) {
+    my $ret = from_json($resp->content());
+    if ($resp->is_error && !$ret->{status}) {
         my $error = "Error while fetching $url :\n" . $resp->status_line . "\n";
         my $content = $resp->content;
         if ($content) {
@@ -123,8 +125,8 @@ sub request {
         croak $error;
     }
     
-    my $ret = from_json($resp->content());
-    return JMX::Jmx4Perl::Response->new($jmx_request,$ret->{value});
+
+    return JMX::Jmx4Perl::Response->new($ret->{status},$jmx_request,$ret->{value},$ret->{error},$ret->{stacktrace});
 }
 
 sub request_url {
@@ -141,6 +143,8 @@ sub request_url {
         if ($type eq WRITE_ATTRIBUTE) {
             $url .= "/" . $request->get("value");
         }
+    } elsif ($type eq LIST_MBEANS) {
+        $url .= $request->get("path") if $request->get("path");
     }
     return $url;
 }
@@ -148,6 +152,29 @@ sub request_url {
 
 # ===================================================================
 # Specialized UserAgent for passing in credentials:
+
+=head1 LICENSE
+
+This file is part of jmx4perl.
+
+Jmx4perl is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+jmx4perl is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with jmx4perl.  If not, see <http://www.gnu.org/licenses/>.
+
+=AUTHOR
+
+roland@cpan.org
+
+=cut
 
 package JMX::Jmx4Perl::Agent::UserAgent;
 use vars qw(@ISA);
@@ -172,27 +199,7 @@ sub get_basic_credentials {
     }
 }
 
-=head1 LICENSE
-
-This file is part of jmx4perl.
-
-Jmx4perl is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
-
-jmx4perl is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with jmx4perl.  If not, see <http://www.gnu.org/licenses/>.
-
-=AUTHOR
-
-roland@cpan.org
-
-=cut
+# Switch back to main package
+package JMX::Jmx4Perl::Agent;
 
 1;
