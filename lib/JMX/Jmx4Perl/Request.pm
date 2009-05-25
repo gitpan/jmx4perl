@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-JMX::Jmx4Perl::Request - Encapsulates a request for Jmx4Perl
+JMX::Jmx4Perl::Request - Encapsulates a jmx4perl request 
 
 =head1 SYNOPSIS
 
@@ -154,7 +154,6 @@ sub new {
     }
     croak "Invalid type '",$type,"' given (should be one of ",join(" ",keys %$TYPES),")" unless $TYPES->{$type};
     
-    my $self;
     # Hash comes after type
     if (!$self) {
         if (ref($_[0]) eq "HASH") {

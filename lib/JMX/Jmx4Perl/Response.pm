@@ -2,8 +2,7 @@
 
 =head1 NAME
 
-JMX::Jmx4Perl::Response - Encapsulates as JMX Response as it comes from the
-observered Server
+JMX::Jmx4Perl::Response - Encapsulates a jmx4perl response 
 
 =head1 SYNOPSIS
 
@@ -57,6 +56,7 @@ sub new {
 Return the status code of this response. Status codes are modelled after HTTP
 return codes. C<200> is the code for a suceeded request. Any code in the range
 500 - 599 specifies an error.
+
 =cut
 
 sub status {
@@ -74,7 +74,7 @@ sub is_ok {
     return shift->{status} == 200;
 }
 
-=item $fault = $resonse_is_error()
+=item $fault = $response->is_error()
 
 Opposite of C<is_ok>, i.e. return true if the status code is B<not> equal to
 200 
@@ -126,7 +126,7 @@ sub request {
     return shift->{request};
 }
 
-=back 
+=back
 
 =head1 LICENSE
 

@@ -9,17 +9,21 @@ use strict;
 use vars qw($VERSION $DEBUG @ISA);
 use JMX::Jmx4Perl;
 use JMX::Jmx4Perl::Request;
+use JMX::Jmx4Perl::Response;
 use JMX::Jmx4Perl::Agent::UserAgent;
+use Data::Dumper;
 
 @ISA = qw(JMX::Jmx4Perl);
 
+$VERSION = $JMX::Jmx4Perl::VERSION;
+
 =head1 NAME 
 
-JMX::Jmx4Perl::Agent - JSON-HTTP based acess to a remote JMX Agent
+JMX::Jmx4Perl::Agent - JSON-HTTP based acess to a remote JMX agent
 
 =head1 SYNOPSIS
 
- my $agent = new JMX::Jmx4Perl(mode=>"agent", url => "http://jeeserver/jjagent");
+ my $agent = new JMX::Jmx4Perl(mode=>"agent", url => "http://jeeserver/j4p-agent");
  my $answer = $agent->get_attribute("java.lang:type=Memory","HeapMemoryUsage");
  print Dumper($answer);
 
@@ -30,6 +34,7 @@ JMX::Jmx4Perl::Agent - JSON-HTTP based acess to a remote JMX Agent
                 'max' => 532742144,
                 'init' => 0
                },
+    'status' => 200,
     'request' => {
                    'attribute' => 'HeapMemoryUsage',
                    'name' => 'java.lang:type=Memory'
@@ -93,7 +98,7 @@ sub init {
     $ua->jjagent_config($self->{cfg});
     $ua->timeout($self->cfg-('timeout')) if $self->cfg('timeout');
     $ua->agent("JMX::Jmx4Perl::Agent $VERSION");
-    $ua->env_proxy;
+    # $ua->env_proxy;
     my $proxy = $self->cfg('proxy');
     if ($proxy) {
         if (ref($proxy) eq "HASH") {
@@ -126,6 +131,7 @@ sub request {
     my $url = $self->request_url($jmx_request);
     my $req = HTTP::Request->new(GET => $url);
     my $resp = $ua->request($req);
+    print Dumper($resp);
     my $ret = from_json($resp->content());
     if ($resp->is_error && !$ret->{status}) {
         my $error = "Error while fetching $url :\n" . $resp->status_line . "\n";
@@ -154,17 +160,26 @@ sub request_url {
     $url .= "/" unless $url =~ m|/$|;
     my $type = $request->get("type");
     $url .= $type . "/";
-    $url .= $request->get("mbean") . "/";
+    $url .= $self->_escape($request->get("mbean")) . "/";
     if ($type eq READ_ATTRIBUTE || $type eq WRITE_ATTRIBUTE) {
-        $url .= $request->get("attribute");
-        $url .= "/" . $request->get("path") if $request->get("path");
+        $url .= $self->_escape($request->get("attribute"));
+        $url .= "/" . $self->_escape($request->get("path")) if $request->get("path");
         if ($type eq WRITE_ATTRIBUTE) {
-            $url .= "/" . $request->get("value");
+            $url .= "/" . $self->_escape($request->get("value"));
         }
     } elsif ($type eq LIST_MBEANS) {
-        $url .= $request->get("path") if $request->get("path");
+        $url .= $self->_escape($request->get("path")) if $request->get("path");
     }
     return $url;
+}
+
+# Escape '/' which are used as separators by using "/-/" as an escape sequence
+# Should be save within an URL
+sub _escape {
+    my $self = shift;
+    my $input = shift;
+    $input =~ s|(/+)|"/" . ('-' x length($1)) . "/"|eg;
+    return $input;
 }
 
 =back
