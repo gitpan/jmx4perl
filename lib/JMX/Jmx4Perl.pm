@@ -16,7 +16,7 @@ Simple:
           JMX::Jmx4Perl
               ->new(url => "http://localhost:808get0/j4p-agent")
               ->get_attribute(MEMORY_HEAP_USED);
-   
+
 Advanced:
 
    use strict;
@@ -25,12 +25,15 @@ Advanced:
    
    my $jmx = new JMX::Jmx4Perl(url => "http://localhost:8080/j4p-agent",
                                product => "jboss");
-   my $request = new JMX::Jmx4Perl::Request(type => READ_ATTRIBUTE,
+   my $request = new JMX::Jmx4Perl::Request(type => READ,
                                             mbean => "java.lang:type=Memory",
                                             attribute => "HeapMemoryUsage",
                                             path => "used");
    my $response = $jmx->request($request);
    print "Memory used: ",$response->value(),"\n";
+
+   # Get general server information
+   print "Server Info: ",$jmx->info();
 
 =head1 DESCRIPTION
 
@@ -102,7 +105,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.15_3";
+$VERSION = "0.15_4";
 
 my $REGISTRY = {
                 # Agent based
@@ -110,7 +113,6 @@ my $REGISTRY = {
                 "JMX::Jmx4Perl::Agent" => "JMX::Jmx4Perl::Agent",
                 "JJAgent" => "JMX::Jmx4Perl::Agent",
                };
-
 
 my %PRODUCT_HANDLER;
 
@@ -130,7 +132,7 @@ sub _register_handlers {
 }
 
 BEGIN {
-    &_register_handlers("JMX::Jmx4Perl::ProductHandler");
+    &_register_handlers("JMX::Jmx4Perl::Product");
 }
 
 
@@ -246,7 +248,7 @@ sub get_attribute {
         if (@_ == 1) {
             # A single argument can only be used as an alias
             ($object,$attribute,$path) = 
-              $self->resolve_attribute_alias(UNIVERSAL::isa($_[0],"JMX::Jmx4Perl::Agent::Object") ? $_[0]->{alias} : $_[0]);
+              $self->resolve_attribute_alias($_[0]);
         } else {
             ($object,$attribute,$path) = @_;
         }
@@ -254,7 +256,7 @@ sub get_attribute {
     croak "No object name provided" unless $object;
     croak "No attribute provided for object $object" unless $attribute;
 
-    my $request = JMX::Jmx4Perl::Request->new(READ_ATTRIBUTE,$object,$attribute,$path);
+    my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
     my $response = $self->request($request);
     return $response->value;
 }
@@ -280,6 +282,20 @@ sub resolve_attribute_alias {
 
     my $handler = $self->{product_handler} || $self->_create_handler();
     return $handler->attribute_alias($alias);
+}
+
+=item $product = $self->product_id()
+
+For supported application servers, this methods returns the name of the
+product. This product is either detected automatically or provided during
+construction time.
+
+=cut 
+
+sub product {
+    my $self = shift;
+    my $handler = $self->{product_handler} || $self->_create_handler();
+    return $handler->name();
 }
 
 sub _create_handler {
@@ -359,7 +375,7 @@ sub list {
     my $self = shift;
     my $path = shift;
 
-    my $request = JMX::Jmx4Perl::Request->new(LIST_MBEANS,$path);
+    my $request = JMX::Jmx4Perl::Request->new(LIST,$path);
     my $response = $self->request($request);
     return $response->value;    
 }
@@ -401,6 +417,7 @@ sub formatted_list {
 
 my $SPACE = 4;
 my @SEPS = (":");
+my $CURRENT_DOMAIN = "";
 
 sub _format_map { 
     my ($ret,$map,$path,$level) = @_;
@@ -416,7 +433,13 @@ sub _format_map {
         $ret = &_format_map($ret,$map,$path,$level);
     } else {
         for my $d (keys %$map) {
-            $ret .= &_get_space($level).$d.$sep."\n" unless ($d eq "attr" || $d eq "op");
+            my $prefix = "";
+            if ($level == 0) {
+                $CURRENT_DOMAIN = $d;
+            } elsif ($level == 1) {
+                $prefix = $CURRENT_DOMAIN . ":";
+            } 
+            $ret .= &_get_space($level).$prefix.$d.$sep."\n" unless ($d eq "attr" || $d eq "op");
             my @args = ($ret,$map->{$d},$path);
             if ($d eq "attr") {
                 $ret = &_format_attr_or_op(@args,$level,"attr","Attributes",\&_format_attribute);
@@ -502,6 +525,23 @@ sub request {
     croak "Internal: Must be overwritten by a subclass";    
 }
 
+
+=item $info = $jmx->info()
+
+Get a textual description of the server as returned by a product specific
+handler (see L<JMX::Jmx4Perl::Product::BaseHandler>). It uses the
+autodetection facility if no product is given explicitely during construction. 
+
+=cut
+
+sub info {
+    my $self = shift;
+    
+    my $handler = $self->{product_handler} || $self->_create_handler();
+    return $handler->info();
+}
+
+
 sub cfg {
     my $self = shift;
     my $key = shift;
@@ -547,8 +587,12 @@ Support for executing JMX operations
 
 =item *
 
-Providing aliases for common MBean Attributes, which can be used for any
-application server
+JSR-77 support
+
+=item * 
+
+Command line utility for performing certain JMX operations (with readline
+support). 
 
 =item *
 

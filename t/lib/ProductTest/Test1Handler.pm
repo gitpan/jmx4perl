@@ -1,10 +1,10 @@
-package ProductHandlerTest::Test1Handler;
+package ProductTest::Test1Handler;
 
-use JMX::Jmx4Perl::ProductHandler::BaseHandler;
+use JMX::Jmx4Perl::Product::BaseHandler;
 use JMX::Jmx4Perl::Alias;
 
 use vars qw(@ISA);
-@ISA = qw(JMX::Jmx4Perl::ProductHandler::BaseHandler);
+@ISA = qw(JMX::Jmx4Perl::Product::BaseHandler);
 
 sub id { return "Test1" };
 

@@ -131,7 +131,20 @@ sub request {
     my $url = $self->request_url($jmx_request);
     my $req = HTTP::Request->new(GET => $url);
     my $resp = $ua->request($req);
-    my $ret = from_json($resp->content());
+    my $ret;
+    eval {
+        $ret = from_json($resp->content());
+    };
+    if ($@) {
+        return new JMX::Jmx4Perl::Response->new
+          ( 
+           $resp->code,
+           $jmx_request,
+           $resp->content,
+           "Error while deserializing JSON answer (probably wrong URL)"
+          );
+    }
+    croak "Error while deserializing ",$resp->content," : ",$@ if $@;
     if ($resp->is_error && !$ret->{status}) {
         my $error = "Error while fetching $url :\n" . $resp->status_line . "\n";
         my $content = $resp->content;
@@ -140,9 +153,7 @@ sub request {
             $error .=  $content if $content ne $resp->status_line;
         }
         croak $error;
-    }
-    
-
+    };
     return JMX::Jmx4Perl::Response->new($ret->{status},$jmx_request,$ret->{value},$ret->{error},$ret->{stacktrace});
 }
 
@@ -160,13 +171,13 @@ sub request_url {
     my $type = $request->get("type");
     $url .= $type . "/";
     $url .= $self->_escape($request->get("mbean")) . "/";
-    if ($type eq READ_ATTRIBUTE || $type eq WRITE_ATTRIBUTE) {
+    if ($type eq READ || $type eq WRITE) {
         $url .= $self->_escape($request->get("attribute"));
         $url .= "/" . $self->_escape($request->get("path")) if $request->get("path");
-        if ($type eq WRITE_ATTRIBUTE) {
+        if ($type eq WRITE) {
             $url .= "/" . $self->_escape($request->get("value"));
         }
-    } elsif ($type eq LIST_MBEANS) {
+    } elsif ($type eq LIST) {
         $url .= $self->_escape($request->get("path")) if $request->get("path");
     }
     return $url;
@@ -174,7 +185,7 @@ sub request_url {
 
 # Escape '/' which are used as separators by using "/-/" as an escape sequence
 # URI Encoding doesn't work for slashes, since some Appserver tend to mangle
-# them up with pathinfo-slashes too early in the request cycle.
+# them up with pathinfo-slashes to early in the request cycle.
 # E.g. Tomcat/Jboss croaks with a "HTTP/1.x 400 Invalid URI: noSlash" if one
 # uses an encoded slash somewhere in the path-info part.
 sub _escape {

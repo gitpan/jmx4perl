@@ -1,15 +1,15 @@
 #!/usr/bin/perl
-package JMX::Jmx4Perl::ProductHandler::JBoss;
+package JMX::Jmx4Perl::Product::JBoss;
 
-use JMX::Jmx4Perl::ProductHandler::BaseHandler;
+use JMX::Jmx4Perl::Product::BaseHandler;
 use strict;
-use base "JMX::Jmx4Perl::ProductHandler::BaseHandler";
+use base "JMX::Jmx4Perl::Product::BaseHandler";
 
 use Carp qw(croak);
 
 =head1 NAME
 
-JMX::Jmx4Perl::ProductHandler::JBoss - Product handler for accessing JBoss
+JMX::Jmx4Perl::Product::JBoss - Product handler for accessing JBoss
 specific namings
 
 =head1 DESCRIPTION
@@ -20,6 +20,10 @@ This is the product handler support JBoss 4.x and JBoss 5.x
 
 sub id {
     return "jboss";
+}
+
+sub name {
+    return "JBoss";
 }
 
 sub autodetect {
@@ -34,7 +38,7 @@ sub version {
     return $self->{version};
 }
 
-sub know_jsr77 {
+sub jsr77 {
     return 1;
 }
 
@@ -53,10 +57,6 @@ sub _init_aliases {
    }
      # Alias => [ "mbean", "attribute", "path" ]
     };
-}
-
-sub description { 
-    my ($self,$jmx4perl) = @_;
 }
 
 
