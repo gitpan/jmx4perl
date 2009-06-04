@@ -9,8 +9,7 @@ use Carp qw(croak);
 
 =head1 NAME
 
-JMX::Jmx4Perl::Product::Glassfish - Product handler for accessing
-Glassfish specific namings
+JMX::Jmx4Perl::Product::Glassfish2 - Handler for Glassfish, Version 2
 
 =head1 DESCRIPTION
 
@@ -26,28 +25,21 @@ sub name {
     return "Glassfish";
 }
 
-sub autodetect {
+sub _try_version {
     my $self = shift;
-    return $self->try_attribute("version","com.sun.appserv:category=runtime,j2eeType=J2EEDomain,name=com.sun.appserv","applicationServerFullVersion");
-}
-
-sub version {
-    my $self = shift;
-    $self->try_attribute("version","com.sun.appserv:category=runtime,j2eeType=J2EEDomain,name=com.sun.appserv","applicationServerFullVersion")
-      unless defined $self->{version};
-    return $self->{version};
+    return $self->try_attribute("version","com.sun.appserv:category=runtime,j2eeType=J2EEDomain,name=com.sun.appserv",
+                                "applicationServerFullVersion");
 }
 
 sub jsr77 {
     return 1;
 }
 
-sub _init_aliases {
+sub init_aliases {
     return 
     {
      attributes => 
    {
-    SERVER_VERSION => [ "com.sun.appserv:category=runtime,j2eeType=J2EEDomain,name=com.sun.appserv","applicationServerFullVersion" ],
    },
      operations => 
    {

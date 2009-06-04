@@ -9,8 +9,7 @@ use Carp qw(croak);
 
 =head1 NAME
 
-JMX::Jmx4Perl::Product::Tomcat - Product handler for accessing Tomcat
-specific namings
+JMX::Jmx4Perl::Product::Tomcat - Handler for Apache Tomcat
 
 =head1 DESCRIPTION
 
@@ -26,22 +25,13 @@ sub name {
     return "Apache Tomcat";
 }
 
-sub autodetect {
-    my $self = shift;
-    return $self->_try_version;
-}
-
-sub version {
-    my $self = shift;
-    $self->_try_version unless defined $self->{version};
-    return $self->{version};
+# Pure Tomcat must be *after* all App-Servers using tomcat as web container
+sub order {
+    return 20;
 }
 
 sub _try_version {
     my $self = shift;
-    # JBoss also has the tomcat tag, so we need to check this here as well
-    my $is_jboss = $self->try_attribute("jboss_version","jboss.system:type=Server","VersionNumber");
-    return undef if $is_jboss;
 
     my $res = $self->try_attribute("version","Catalina:type=Server","serverInfo");
     $self->{version} =~ s/^.*?\/?(.*)$/$1/;
@@ -52,12 +42,11 @@ sub jsr77 {
     return 1;
 }
 
-sub _init_aliases {
+sub init_aliases {
     return 
     {
      attributes => 
    {
-    SERVER_VERSION => [ "Catalina:type=Server","serverInfo", qr/^.*?\/?(.*)$/ ],
     #SERVER_ADDRESS => [ "jboss.system:type=ServerInfo", "HostAddress"],
     SERVER_HOSTNAME => [ "Catalina:type=Engine", "defaultHost"],
    },

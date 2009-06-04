@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-jmx4perl - JMX acccess modules and tools
+jmx4perl - JMX acccess tool
 
 =cut
 
@@ -126,11 +126,14 @@ supported application servers (see L<JMX::Jmx4Perl::Manual> for a list of
 supported products). The only argument required is the url which points to the
 deployed jmx4perl agent.
 
+With C<--verbose> C<info> prints the system properties and runtime arguments as
+well. 
+
 =cut 
 
 sub command_info {
     my $jmx = shift;
-    print $jmx->info();
+    print $jmx->info($opts{verbose});
 }
 
 =head2 list
@@ -288,7 +291,7 @@ Readline support
 
 =item *
 
-TAB completion of MBean names, attributes and operations
+.TAB completion of MBean names, attributes and operations
 
 =item * 
 

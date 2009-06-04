@@ -100,7 +100,7 @@ my %ALIAS_MAP =
   RUNTIME_VM_VENDOR => ["JVM Vendor", [ "java.lang:type=Runtime", "VmVendor"]],
   RUNTIME_ARGUMENTS => ["Arguments when starting the JVM", [ "java.lang:type=Runtime", "InputArguments"]],
   RUNTIME_UPTIME => ["Total uptime of JVM", [ "java.lang:type=Runtime", "Uptime"]],
-  RUNTIME_STARTIME => ["Time when starting the JVM", [ "java.lang:type=Runtime", "StartTime"]],
+  RUNTIME_STARTTIME => ["Time when starting the JVM", [ "java.lang:type=Runtime", "StartTime"]],
   RUNTIME_CLASSPATH => ["Classpath", [ "java.lang:type=Runtime", "ClassPath"]],
   RUNTIME_BOOTCLASSPATH => ["Bootclasspath", [ "java.lang:type=Runtime", "BootClassPath"]],
   RUNTIME_LIBRARY_PATH => ["The LD_LIBRARY_PATH", [ "java.lang:type=Runtime", "LibraryPath"]],

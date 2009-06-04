@@ -19,3 +19,4 @@ for $_ (qw(memory:heap:used MEMORY_HEAP_USED)) {
     ok(MEMORY_HEAP_USED == $heap,"Equality");
     ok($heap->isa("JMX::Jmx4Perl::Alias::Object"),"isa");
 }
+
