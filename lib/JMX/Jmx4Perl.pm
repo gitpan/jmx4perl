@@ -105,7 +105,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.15";
+$VERSION = "0.16";
 
 my $REGISTRY = {
                 # Agent based
@@ -275,6 +275,9 @@ sub get_attribute {
 
     my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
     my $response = $self->request($request);
+    if ($response->status == 404) {
+        return undef;
+    }
     return $response->value;
 }
 
