@@ -25,8 +25,11 @@
 package org.cpan.jmx4perl;
 
 
-import org.cpan.jmx4perl.converter.attribute.AttributeConverter;
 import org.cpan.jmx4perl.converter.StringToObjectConverter;
+import org.cpan.jmx4perl.converter.attribute.AttributeConverter;
+import org.cpan.jmx4perl.handler.*;
+import org.cpan.jmx4perl.history.HistoryStore;
+import org.cpan.jmx4perl.config.Config;
 import org.json.simple.JSONObject;
 
 import javax.management.*;
@@ -80,37 +83,62 @@ public class AgentServlet extends HttpServlet {
     // of operations
     private StringToObjectConverter stringToObjectConverter;
 
-    // Are we running within JBoss ?
-    private boolean isJBoss;
-
     // The MBeanServers to use
     private Set<MBeanServer> mBeanServers;
 
     // Use debugging ?
     private boolean debug = false;
 
+    // Map with all request handlers
+    private Map<JmxRequest.Type,RequestHandler> requestHandlerMap;
+
+    // History handler
+    private HistoryStore historyStore;
+
+    // Whether we are running under JBoss
+    boolean isJBoss = checkForClass("org.jboss.mx.util.MBeanServerLocator");
+
+    // MBean used for configuration
+    private Config configMBean;
+
     @Override
     public void init() throws ServletException {
         super.init();
+
+        // Central objects
         stringToObjectConverter = new StringToObjectConverter();
         attributeConverter = new AttributeConverter(stringToObjectConverter);
-        isJBoss = checkForClass("org.jboss.mx.util.MBeanServerLocator");
+
+        // Get all MBean servers we can find
         mBeanServers = findMBeanServers();
+
+        // Set debugging configuration
         ServletConfig config = getServletConfig();
         String doDebug = config.getInitParameter("debug");
         if (doDebug != null && Boolean.valueOf(doDebug)) {
             debug = true;
         }
+
+        registerRequestHandler();
+        registerOwnMBeans();
     }
 
+    @Override
+    public void destroy() {
+        unregisterOwnMBeans();
+        super.destroy();
+
+    }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         handle(req, resp);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         handle(req,resp);
     }
 
@@ -121,26 +149,16 @@ public class AgentServlet extends HttpServlet {
         Throwable throwable = null;
         try {
             jmxReq = new JmxRequest(pReq.getPathInfo());
-            if (debug) {
-                log(jmxReq.toString());
-            }
-            Object retValue;
-            JmxRequest.Type type = jmxReq.getType();
-            if (type == JmxRequest.Type.READ) {
-                retValue = getMBeanAttribute(jmxReq);
-            } else if (type == JmxRequest.Type.WRITE) {
-                retValue = setMBeanAttribute(jmxReq);
-            } else if (type == JmxRequest.Type.EXEC) {
-                retValue = executeMBeanOperation(jmxReq);
-            } else if (type == JmxRequest.Type.LIST) {
-                retValue = listMBeans();
-            } else if (type == JmxRequest.Type.VERSION) {
-                retValue = Version.getVersion();
-            } else {
-                throw new UnsupportedOperationException("Unsupported operation '" + jmxReq.getType() + "'");
-            }
+            if (debug) log("Request: " + jmxReq.toString());
+
+            Object retValue = callRequestHandler(jmxReq);
+            if (debug) log("Return: " + retValue);
+
             json = attributeConverter.convertToJson(retValue,jmxReq);
+            historyStore.updateAndAdd(jmxReq,json);
+
             json.put("status",200 /* success */);
+            if (debug) log("Response: " + json);
         } catch (AttributeNotFoundException exp) {
             code = 404;
             throwable = exp;
@@ -175,7 +193,44 @@ public class AgentServlet extends HttpServlet {
         }
     }
 
-
+    private Object callRequestHandler(JmxRequest pJmxReq)
+            throws ReflectionException, InstanceNotFoundException, MBeanException, AttributeNotFoundException {
+        JmxRequest.Type type = pJmxReq.getType();
+        RequestHandler handler = requestHandlerMap.get(type);
+        if (handler == null) {
+            throw new UnsupportedOperationException("Unsupported operation '" + pJmxReq.getType() + "'");
+        }
+        if (handler.handleAllServersAtOnce()) {
+            return handler.handleRequest(mBeanServers,pJmxReq);
+        } else {
+            try {
+                wokaroundJBossBug(pJmxReq);
+                AttributeNotFoundException attrException = null;
+                InstanceNotFoundException objNotFoundException = null;
+                for (MBeanServer s : mBeanServers) {
+                    try {
+                        return handler.handleRequest(s, pJmxReq);
+                    } catch (InstanceNotFoundException exp) {
+                        // Remember exceptions for later use
+                        objNotFoundException = exp;
+                    } catch (AttributeNotFoundException exp) {
+                        attrException = exp;
+                    }
+                }
+                if (attrException != null) {
+                    throw attrException;
+                }
+                // Must be there, otherwise we would nave have left the loop
+                throw objNotFoundException;
+            } catch (ReflectionException e) {
+                throw new RuntimeException("Internal error for " + pJmxReq.getAttributeName() +
+                        "' on object " + pJmxReq.getObjectName() + ": " + e);
+            } catch (MBeanException e) {
+                throw new RuntimeException("Exception while fetching the attribute '" + pJmxReq.getAttributeName() +
+                        "' on object " + pJmxReq.getObjectName() + ": " + e);
+            }
+        }
+    }
 
     private JSONObject getErrorJSON(int pErrorCode, Throwable pExp, JmxRequest pJmxReq) {
         JSONObject jsonObject = new JSONObject();
@@ -187,78 +242,6 @@ public class AgentServlet extends HttpServlet {
         return jsonObject;
     }
 
-    private Object listMBeans() throws InstanceNotFoundException {
-        try {
-            Map<String /* domain */,
-                    Map<String /* props */,
-                            Map<String /* attribute/operation */,
-                                    List<String /* names */>>>> ret =
-                    new HashMap<String, Map<String, Map<String, List<String>>>>();
-            for (MBeanServer server : mBeanServers) {
-                for (Object nameObject : server.queryNames((ObjectName) null,(QueryExp) null)) {
-                    ObjectName name = (ObjectName) nameObject;
-                    MBeanInfo mBeanInfo = server.getMBeanInfo(name);
-
-                    Map mBeansMap = getOrCreateMap(ret,name.getDomain());
-                    Map mBeanMap = getOrCreateMap(mBeansMap,name.getCanonicalKeyPropertyListString());
-
-                    addAttributes(mBeanMap, mBeanInfo);
-                    addOperations(mBeanMap, mBeanInfo);
-
-                    // Trim if needed
-                    if (mBeanMap.size() == 0) {
-                        mBeansMap.remove(name.getCanonicalKeyPropertyListString());
-                        if (mBeansMap.size() == 0) {
-                            ret.remove(name.getDomain());
-                        }
-                    }
-                }
-            }
-            return ret;
-        } catch (ReflectionException e) {
-            throw new IllegalStateException("Internal error while retrieving list: " + e,e);
-        } catch (IntrospectionException e) {
-            throw new IllegalStateException("Internal error while retrieving list: " + e,e);
-        }
-    }
-
-    private void addOperations(Map pMBeanMap, MBeanInfo pMBeanInfo) {
-        // Extract operations
-        Map opMap = new HashMap();
-        for (MBeanOperationInfo opInfo : pMBeanInfo.getOperations()) {
-            Map map = new HashMap();
-            List argList = new ArrayList();
-            for (MBeanParameterInfo paramInfo :  opInfo.getSignature()) {
-                Map args = new HashMap();
-                args.put("desc",paramInfo.getDescription());
-                args.put("name",paramInfo.getName());
-                args.put("type",paramInfo.getType());
-                argList.add(args);
-            }
-            map.put("args",argList);
-            map.put("ret",opInfo.getReturnType());
-            map.put("desc",opInfo.getDescription());
-            opMap.put(opInfo.getName(),map);
-        }
-        if (opMap.size() > 0) {
-            pMBeanMap.put("op",opMap);
-        }
-    }
-
-    private void addAttributes(Map pMBeanMap, MBeanInfo pMBeanInfo) {
-        // Extract atributes
-        Map attrMap = new HashMap();
-        for (MBeanAttributeInfo attrInfo : pMBeanInfo.getAttributes()) {
-            Map map = new HashMap();
-            map.put("type",attrInfo.getType());
-            map.put("desc",attrInfo.getDescription());
-            map.put("rw",new Boolean(attrInfo.isWritable() && attrInfo.isReadable()));
-            attrMap.put(attrInfo.getName(),map);
-        }
-        if (attrMap.size() > 0) {
-            pMBeanMap.put("attr",attrMap);
-        }
-    }
 
     private void sendResponse(HttpServletResponse pResp, int pStatusCode, String pJsonTxt) throws IOException {
         try {
@@ -273,119 +256,68 @@ public class AgentServlet extends HttpServlet {
         writer.write(pJsonTxt);
     }
 
-    private Object getMBeanAttribute(JmxRequest pJmxReq) throws AttributeNotFoundException, InstanceNotFoundException {
-        return executeJmxOperation(
-                pJmxReq,
-                new JmxRequestExecutor() {
-                    public Object execute(JmxRequest request, MBeanServer server)
-                            throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException {
-                        return server.getAttribute(request.getObjectName(), request.getAttributeName());
-                    }
-                }
-        );
+
+    private void registerRequestHandler() {
+        RequestHandler handlers[] = {
+                new ReadHandler(),
+                new WriteHandler(attributeConverter),
+                new ExecHandler(stringToObjectConverter),
+                new ListHandler(),
+                new VersionHandler()
+        };
+
+        requestHandlerMap = new HashMap<JmxRequest.Type,RequestHandler>();
+        for (RequestHandler handler : handlers) {
+            requestHandlerMap.put(handler.getType(),handler);
+        }
     }
 
-    // Set the MBean attribute and return the old value
-    private Object setMBeanAttribute(JmxRequest pJmxReq) throws AttributeNotFoundException, InstanceNotFoundException {
-        return executeJmxOperation(
-                pJmxReq,
-                new JmxRequestExecutor() {
-                    public Object execute(JmxRequest request, MBeanServer server)
-                            throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException {
-                        try {
-                            return setAttribute(request, server);
-                        } catch (IntrospectionException exp) {
-                            throw new IllegalArgumentException("Cannot get info for MBean " + request.getObjectName() + ": " +exp,exp);
-                        } catch (InvalidAttributeValueException e) {
-                            throw new IllegalArgumentException("Invalid value " + request.getValue() + " for attribute " +
-                                    request.getAttributeName() + ", MBean " + request.getObjectNameAsString());
-                        } catch (IllegalAccessException e) {
-                            throw new IllegalArgumentException("Cannot set value " + request.getValue() + " for attribute " +
-                                    request.getAttributeName() + ", MBean " + request.getObjectNameAsString(),e);
-                        } catch (InvocationTargetException e) {
-                            throw new IllegalArgumentException("Cannot set value " + request.getValue() + " for attribute " +
-                                    request.getAttributeName() + ", MBean " + request.getObjectNameAsString(),e);
-                        }
-                    }
-                }
-        );
-
-    }
-
-    private Object executeMBeanOperation(JmxRequest pJmxReq)
-            throws InstanceNotFoundException, AttributeNotFoundException {
-        return executeJmxOperation(
-                pJmxReq,
-                new JmxRequestExecutor() {
-                    public Object execute(JmxRequest request, MBeanServer server)
-                            throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException {
-                        String[] paramClazzes = new String[0];
-                        paramClazzes = extractOperationTypes(server,request);
-                        Object[] params = new Object[paramClazzes.length];
-                        List<String> args = request.getExtraArgs();
-                        if (args.size() != paramClazzes.length) {
-                            throw new IllegalArgumentException("Invalid operation parameters. Operation " +
-                                    request.getOperation() + " requires " + paramClazzes.length +
-                                    " parameters, not " + args.size() + " as given");
-                        }
-                        for (int i = 0;i <  paramClazzes.length; i++) {
-                            params[i] = stringToObjectConverter.convertFromString(paramClazzes[i],args.get(i));
-                        }
-                        return server.invoke(request.getObjectName(),request.getOperation(),params,paramClazzes);
-                    }
-                }
-        );
-    }
-
-    private String[] extractOperationTypes(MBeanServer pServer, JmxRequest pRequest)
-            throws ReflectionException, InstanceNotFoundException {
+    private void registerOwnMBeans() {
+        int maxEntries;
+        ServletConfig config = getServletConfig();
         try {
-            MBeanInfo mBeanInfo = pServer.getMBeanInfo(pRequest.getObjectName());
-            for (MBeanOperationInfo opInfo : mBeanInfo.getOperations()) {
-                if (opInfo.getName().equals(pRequest.getOperation())) {
-                    MBeanParameterInfo[] pInfos = opInfo.getSignature();
-                    String[] types = new String[pInfos.length];
-                    for (int i=0;i<pInfos.length;i++) {
-                        types[i] = pInfos[i].getType();
-                    }
-                    return types;
-                }
-            }
-        } catch (IntrospectionException e) {
-            throw new IllegalStateException("Cannot extract MBeanInfo for " + pRequest.getObjectNameAsString());
+            maxEntries = Integer.parseInt(config.getInitParameter("historyMaxEntries"));
+        } catch (NumberFormatException exp) {
+            maxEntries = 10;
         }
-        throw new IllegalArgumentException(
-                "Cannot extract type info for operation " + pRequest.getOperation() +
-                " on MBean " + pRequest.getObjectNameAsString());
+        historyStore = new HistoryStore(maxEntries);
+        if (mBeanServers.size() > 0) {
+            try {
+                configMBean = new Config(historyStore);
+                ObjectName name = new ObjectName(configMBean.getMBeanName());
+                mBeanServers.iterator().next().registerMBean(configMBean,name);
+                //ManagementFactory.getPlatformMBeanServer().registerMBean(configMBean,name);
+            } catch (NotCompliantMBeanException e) {
+                log("Error registering config MBean: " + e,e);
+            } catch (MBeanRegistrationException e) {
+                log("Cannot register MBean: " + e,e);
+            } catch (MalformedObjectNameException e) {
+                log("Invalid name for config MBean: " + e,e);
+            } catch (InstanceAlreadyExistsException e) {
+                log("Config MBean already exists: " + e,e);
+            }
+        }
+    }
+
+    // Remove MBeans again.
+    private void unregisterOwnMBeans() {
+        if (configMBean != null) {
+            ObjectName name = null;
+            try {
+                name = new ObjectName(configMBean.getMBeanName());
+                mBeanServers.iterator().next().unregisterMBean(name);
+            } catch (MalformedObjectNameException e) {
+                // wont happen
+                log("Invalid name for config MBean: " + e,e);
+            } catch (InstanceNotFoundException e) {
+                log("No Mbean registered with name " + name + ": " + e,e);
+            } catch (MBeanRegistrationException e) {
+                log("Cannot unregister MBean: " + e,e);
+            }
+        }
     }
 
 
-    // =================================================================================
-
-    private Object setAttribute(JmxRequest request, MBeanServer server)
-            throws MBeanException, AttributeNotFoundException, InstanceNotFoundException,
-            ReflectionException, IntrospectionException, InvalidAttributeValueException, IllegalAccessException, InvocationTargetException {
-        // Old value, will throw an exception if attribute is not known. That's good.
-        Object oldValue = server.getAttribute(request.getObjectName(), request.getAttributeName());
-
-        MBeanInfo mInfo = server.getMBeanInfo(request.getObjectName());
-        MBeanAttributeInfo aInfo = null;
-        for (MBeanAttributeInfo i : mInfo.getAttributes()) {
-            if (i.getName().equals(request.getAttributeName())) {
-                aInfo = i;
-                break;
-            }
-        }
-        if (aInfo == null) {
-            throw new AttributeNotFoundException("No attribute " + request.getAttributeName() +
-                    " found for MBean " + request.getObjectNameAsString());
-        }
-        String type = aInfo.getType();
-        Object[] values = attributeConverter.getValues(type,oldValue,request);
-        Attribute attribute = new Attribute(request.getAttributeName(),values[0]);
-        server.setAttribute(request.getObjectName(),attribute);
-        return values[1];
-    }
 
     // ==========================================================================
     // Helper
@@ -466,41 +398,7 @@ public class AgentServlet extends HttpServlet {
     // =====================================================================================
 
     // Execute a request for all known MBeanServers until the first doesnt croak
-    private Object executeJmxOperation(JmxRequest pJmxReq, JmxRequestExecutor pOperation)
-            throws InstanceNotFoundException, AttributeNotFoundException {
-        try {
-            wokaroundJBossBug(pJmxReq);
-            AttributeNotFoundException attrException = null;
-            InstanceNotFoundException objNotFoundException = null;
-            for (MBeanServer s : mBeanServers) {
-                try {
-                    return pOperation.execute(pJmxReq,s);
-                } catch (InstanceNotFoundException exp) {
-                    // Remember exceptions for later use
-                    objNotFoundException = exp;
-                } catch (AttributeNotFoundException exp) {
-                    attrException = exp;
-                }
-            }
-            if (attrException != null) {
-                throw attrException;
-            }
-            // Must be there, otherwise we would nave have left the loop
-            throw objNotFoundException;
-        } catch (ReflectionException e) {
-            throw new RuntimeException("Internal error for " + pJmxReq.getAttributeName() +
-                    "' on object " + pJmxReq.getObjectName() + ": " + e);
-        } catch (MBeanException e) {
-            throw new RuntimeException("Exception while fetching the attribute '" + pJmxReq.getAttributeName() +
-                    "' on object " + pJmxReq.getObjectName() + ": " + e);
-        }
-    }
-
-    private interface JmxRequestExecutor {
-        Object execute(JmxRequest request,MBeanServer server)
-                throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException;
-    }
-
+    // At the time being we dont need this one, but keep this method as reference.
     private void wokaroundJBossBug(JmxRequest pJmxReq) throws ReflectionException, InstanceNotFoundException {
         if (isJBoss) {
             try {
@@ -509,6 +407,7 @@ public class AgentServlet extends HttpServlet {
                 for (MBeanServer s : mBeanServers) {
                     try {
                         s.getMBeanInfo(pJmxReq.getObjectName());
+                        return;
                     } catch (InstanceNotFoundException exp) {
                         // Only one can have the name. So, this exception
                         // is being expected to happen
@@ -518,15 +417,6 @@ public class AgentServlet extends HttpServlet {
                 throw new RuntimeException("Workaround for JBoss failed for object " + pJmxReq.getObjectName() + ": " + e);
             }
         }
-    }
-
-    private Map getOrCreateMap(Map pMap, String pKey) {
-        Map nMap = (Map) pMap.get(pKey);
-        if (nMap == null) {
-            nMap = new HashMap();
-            pMap.put(pKey,nMap);
-        }
-        return nMap;
     }
 
     private boolean checkForClass(String pClassName) {
