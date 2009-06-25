@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-package JMX::Jmx4Perl::Product::Glassfish3;
+package JMX::Jmx4Perl::Product::Glassfish;
 
 use JMX::Jmx4Perl::Product::BaseHandler;
 use strict;
@@ -9,29 +9,28 @@ use Carp qw(croak);
 
 =head1 NAME
 
-JMX::Jmx4Perl::Product::Glassfish3 - Handler for Glassfisch, Version 3
+JMX::Jmx4Perl::Product::Glassfish - Handler for Glassfish, Version 2
 
 =head1 DESCRIPTION
 
-This handler supports glassfish version 3 (L<https://glassfish.dev.java.net/>)
+This handler supports glassfish version 2. (L<https://glassfish.dev.java.net/>)
 
 =cut
 
 sub id {
-    return "glassfish3";
+    return "glassfish";
 }
 
 sub name {
     return "Glassfish";
 }
 
-sub _try_version {
-    return shift->try_attribute
-      (
-       "version",
-       "amx:j2eeType=X-DomainRoot,name=domain1",
-       "ApplicationServerFullVersion"
-      );
+sub version {
+    return shift->_version_or_vendor("version",qr/([\d\.]+)/m);
+}
+
+sub autodetect_pattern {
+    return (shift->original_version_sub,qr/GlassFish/i);
 }
 
 sub jsr77 {
@@ -46,12 +45,12 @@ sub init_aliases {
    },
      operations => 
    {
-    # No method known yet
-    THREAD_DUMP => [ "com.sun.appserv:category=monitor,server=server,type=JVMInformation", undef ]
+    THREAD_DUMP => [ "com.sun.appserv:category=monitor,server=server,type=JVMInformation", "getThreadDump"]
    }
      # Alias => [ "mbean", "attribute", "path" ]
     };
 }
+
 
 =head1 LICENSE
 

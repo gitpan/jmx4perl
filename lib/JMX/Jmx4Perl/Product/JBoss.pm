@@ -22,20 +22,23 @@ sub id {
 }
 
 sub name {
-    return "JBoss";
+    return "JBoss AS";
 }
 
 sub order { 
     return -2;
 }
 
-sub _try_version {
-    my $self = shift;
-    return $self->try_attribute("version","jboss.system:type=Server","VersionNumber");
-}
-
 sub jsr77 {
     return 1;
+}
+
+sub version {
+    return shift->_version_or_vendor("version",qr/^(.*?)\s+/);
+}
+
+sub autodetect_pattern {
+    return ("vendor",qr/JBoss/i);
 }
 
 sub init_aliases {

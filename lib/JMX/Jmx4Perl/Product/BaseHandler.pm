@@ -44,7 +44,18 @@ sub new {
     $self->{aliases} = $self->init_aliases();
     if ($self->{aliases} && $self->{aliases}->{attributes} 
         && !$self->{aliases}->{attributes}->{SERVER_VERSION}) {
-        $self->{aliases}->{attributes}->{SERVER_VERSION} = sub { shift->version() };
+        $self->{aliases}->{attributes}->{SERVER_VERSION} = sub { 
+            # A little bit nasty, I know, but we have to rebuild
+            # the response since it is burried to deep into the
+            # version fetching mechanism. Still thinking about 
+            # a cleaner solution .....
+            return new JMX::Jmx4Perl::Response
+              (
+               value => shift->version(),
+               status => 200,
+               timestamp => time
+              )
+        };
     }
     return $self;
 }
@@ -71,6 +82,21 @@ sub name {
     return shift->id;
 }
 
+=item $vendor = $handler->vendor()
+
+Get the vendor for this product. If the handler support JSR 77 this is
+extracted directly from the JSR 77 information. Otherwise, as handler is
+recommended to detect the vendor on its own with a method C<_try_vendor>. Note, that he
+shoudl query the server for this information and return C<undef> if it could
+not be extracted from there. The default implementation of L</"autodetect">
+relies on the information fetched here.
+
+=cut
+
+sub vendor {
+    return shift->_version_or_vendor("vendor");
+}
+
 =item $version = $handler->version() 
 
 Get the version of the underlying application server or return C<undef> if the
@@ -81,16 +107,55 @@ that version number.
 =cut
 
 sub version {
+    return shift->_version_or_vendor("version");
+}
+
+sub _version_or_vendor {
     my $self = shift;
-    $self->_try_version unless defined $self->{version};
-    return $self->{version};
+    my $what = shift;
+    my $transform = shift;
+    die "Internal Error: '$what' must be either 'version' or 'vendor'" 
+      if $what ne "version" && $what ne "vendor";
+    
+    if (!defined $self->{$what}) {
+        if ($self->can("_try_$what")) {
+            my $val;
+            eval "\$self->_try_$what";
+            die $@ if $@;
+        } elsif ($self->jsr77 ) {
+            $self->{$what} = $self->_server_info_from_jsr77("server" . (uc substr($what,0,1)) . substr($what,1));
+            $self->{"original_" . $what} = $self->{$what};
+            if ($transform && $self->{$what}) {
+                if (ref($transform) eq "CODE") {
+                    $self->{$what} = &{$transform}($self->{$what});
+                } elsif (ref($transform) eq "Regexp") {
+                    $self->{$what} = $1 if $self->{$what} =~ $transform;                    
+                }
+            }
+            $self->{$what} ||=  "" # Set to empty string if not found
+        } else {
+            die "Internal error: Not a JSR77 Handler and no _try_$what method";
+        }        
+    }
+    return $self->{$what};    
+}
+
+# Return the original version, which is not transformed. This contains
+# often the application info as well. This returns a subroutine, suitable
+# for usie in autodetect_pattern
+sub original_version_sub {
+    return sub {
+        my $self = shift;
+        $self->version();
+        return $self->{"original_version"};
+    }
 }
 
 =item $is_product = $handler->autodetect()
 
 Return true, if the appserver to which the given L<JMX::Jmx4Perl> (at
 construction time) object is connected can be handled by this product
-handler. If this module detects that it definitely can not handler this
+handler. If this module detects that it definitely can not handle this
 application server, it returnd false. If an error occurs during autodectection,
 this method should return C<undef>.
 
@@ -98,7 +163,37 @@ this method should return C<undef>.
 
 sub autodetect {
     my $self = shift;
-    return $self->_try_version;
+    my ($what,$pattern) = $self->autodetect_pattern;
+    if ($what) {
+        #print "W: $what P: $pattern\n";
+        my $val;
+        if (ref($what) eq "CODE") {
+            $val = &{$what}($self);
+        } else {
+            eval "\$val = \$self->$what";
+            die $@ if $@;
+        }
+        #print "V: $val";
+        return 1 if ($val && (!$pattern || ref($pattern) ne "Regexp"));
+        return $val =~ $pattern if ($val && $pattern);
+    }
+    return undef;
+}
+
+=item ($what,$pattern) = $handler->vendor_pattern()
+
+Method returning a pattern which is applied to the vendor or version
+information provided by the L</"version"> or L</"vendor"> in order to detect,
+whether this handler matches the server queried. This pattern is used in the
+default implementation of C<autodetect> to check for a specific product. By
+default, this method returns (C<undef>,C<undef>) which implies, that autodetect
+for this handler returns false. Override this with the pattern matching the
+specific product to detect.
+
+=cut
+
+sub autodetect_pattern {
+    return (undef,undef);
 }
 
 =item $order = $handler->order()
@@ -116,7 +211,6 @@ The ordering index of the fallback handler (which always fire) is 1000, so it
 doesn't make sense to return a higher index for a custom producthandler.
 
 =cut
-
 
 sub order { 
     return undef;
@@ -230,7 +324,8 @@ return an arrayref in the form described above.
 A coderef, which is executed when L<JMX::Jmx4Perl->get_attribute()> is called
 and which is supossed to do the complete lookup. This is the most flexible way
 for a handler to do anything he likes when an attribute value is requested or
-an operation is about to be executed. 
+an operation is about to be executed. You have to return a
+L<JMX::Jmx4Perl::Response> object. 
 
 =back
 
@@ -313,6 +408,7 @@ sub server_info {
     
     my $ret = "";
     $ret .= sprintf("%-10.10s %s\n","Name:",$self->name);
+    $ret .= sprintf("%-10.10s %s\n","Vendor:",$self->vendor) if $self->vendor;
     $ret .= sprintf("%-10.10s %s\n","Version:",$self->version);
     return $ret;
 }
@@ -324,59 +420,133 @@ every Virtual machine.
 
 =cut
 
+
 sub jvm_info {
     my $self = shift;
     my $verbose = shift;
     my $jmx4perl = $self->{jmx4perl};
     
+    my @info = (
+                "Memory" => [
+                             "mem" => [ "Heap-Memory used", MEMORY_HEAP_USED ],
+                             "mem" => [ "Heap-Memory alloc", MEMORY_HEAP_COMITTED ],
+                             "mem" => [ "Heap-Memory max", MEMORY_HEAP_MAX ],
+                             "mem" => [ "NonHeap-Memory max", MEMORY_NONHEAP_MAX ],
+                            ],
+                "Classes" => [
+                              "nr" => [ "Classes loaded", CL_LOADED ],
+                              "nr" => [ "Classes total", CL_TOTAL ]
+                             ],
+                "Threads" => [
+                              "nr" => [ "Threads current", THREAD_COUNT ],
+                              "nr" => [ "Threads peak", THREAD_COUNT_PEAK ]
+                             ],
+                "OS" => [
+                         "str" => [ "CPU Arch", OS_INFO_ARCH ],
+                         "str" => [ "CPU OS",OS_INFO_NAME,OS_INFO_VERSION],
+                         "mem" => [ "Memory total",OS_MEMORY_PHYSICAL_FREE],
+                         "mem" => [ "Memory free",OS_MEMORY_PHYSICAL_FREE],                
+                         "mem" => [ "Swap total",OS_MEMORY_SWAP_TOTAL],                
+                         "mem" => [ "Swap free",OS_MEMORY_SWAP_FREE],
+                         "nr" => [ "FileDesc Open", OS_FILE_DESC_OPEN ],
+                         "nr" => [ "FileDesc Max", OS_FILE_DESC_MAX ]
+                        ],
+                "Runtime" => [
+                              "str" => [ "Name", RUNTIME_NAME ],
+                              "str" => [ "JVM", RUNTIME_VM_VERSION,RUNTIME_VM_NAME,RUNTIME_VM_VENDOR ],
+                              "duration" => [ "Uptime", RUNTIME_UPTIME ],
+                              "time" => [ "Starttime", RUNTIME_STARTTIME ]                              
+                             ]                         
+               );
+
     my $ret = "";
-    $ret .= "Memory:\n";
-    $ret .= sprintf("   %-20.20s %s\n","Heap-Memory used:",int($jmx4perl->get_attribute(MEMORY_HEAP_USED)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","Heap-Memory alloc:",int($jmx4perl->get_attribute(MEMORY_HEAP_COMITTED)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","Heap-Memory max:",int($jmx4perl->get_attribute(MEMORY_HEAP_MAX)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","NonHeap-Memory max:",int($jmx4perl->get_attribute(MEMORY_NONHEAP_MAX)/(1024*1024)) . " MB");
-    $ret .= "Classes:\n";
-    $ret .= sprintf("   %-20.20s %s\n","Classes loaded:",$jmx4perl->get_attribute(CL_LOADED));
-    $ret .= sprintf("   %-20.20s %s\n","Classes total:",$jmx4perl->get_attribute(CL_TOTAL));
-    $ret .= "Threads:\n";
-    $ret .= sprintf("   %-20.20s %s\n","Threads current:",$jmx4perl->get_attribute(THREAD_COUNT));
-    $ret .= sprintf("   %-20.20s %s\n","Threads peak:",$jmx4perl->get_attribute(THREAD_COUNT_PEAK));
-    $ret .= "OS:\n";
-    $ret .= sprintf("   %-20.20s %s\n","CPU Arch:",$jmx4perl->get_attribute(OS_INFO_ARCH));
-    $ret .= sprintf("   %-20.20s %s %s\n","CPU OS:",$jmx4perl->get_attribute(OS_INFO_NAME),$jmx4perl->get_attribute(OS_INFO_VERSION));
-    $ret .= sprintf("   %-20.20s %s\n","Memory total:",int($jmx4perl->get_attribute(OS_MEMORY_TOTAL_PHYSICAL)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","Memory free:",int($jmx4perl->get_attribute(OS_MEMORY_FREE_PHYSICAL)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","Swap used:",int(($jmx4perl->get_attribute(OS_MEMORY_TOTAL_SWAP)-
-                                                         $jmx4perl->get_attribute(OS_MEMORY_FREE_SWAP))/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","Swap avail:",int($jmx4perl->get_attribute(OS_MEMORY_TOTAL_SWAP)/(1024*1024)) . " MB");
-    $ret .= sprintf("   %-20.20s %s\n","FileDesc Open:",$jmx4perl->get_attribute(OS_FILE_OPEN_DESC));
-    $ret .= sprintf("   %-20.20s %s\n","FileDesc Max:",$jmx4perl->get_attribute(OS_FILE_MAX_DESC));    
-    $ret .= "Runtime:\n";
-    $ret .= sprintf("   %-20.20s %s\n","Name:",$jmx4perl->get_attribute(RUNTIME_NAME));    
-    $ret .= sprintf("   %-20.20s %s, %s, %s\n","JVM:",
-                    $jmx4perl->get_attribute(RUNTIME_VM_VERSION),
-                    $jmx4perl->get_attribute(RUNTIME_VM_NAME),
-                    $jmx4perl->get_attribute(RUNTIME_VM_VENDOR),
-                   );    
-    $ret .= sprintf("   %-20.20s %s\n","Uptime:",&_format_duration($jmx4perl->get_attribute(RUNTIME_UPTIME)));
-    $ret .= sprintf("   %-20.20s %s\n","Starttime:",scalar(localtime($jmx4perl->get_attribute(RUNTIME_STARTTIME)/1000)));    
+    while (@info) {
+        my $titel = shift @info;
+        my $e = shift @info;
+        my $val = "";
+        while (@$e) {
+            $self->_append_info(\$val,shift @$e,shift @$e);            
+        }
+        if (length $val) {
+            $ret .= $titel . ":\n";
+            $ret .= $val;
+        }
+    }
+    
+
+
     if ($verbose) {
         my $args = "";
-        for my $arg (@{$jmx4perl->get_attribute(RUNTIME_ARGUMENTS)}) {
-            $args .= $arg . " ";
-            my $i = 1;
-            if (length($args) > $i * 60) {
-                $args .= "\n" . (" " x 24);
-                $i++;
+        my $rt_args = $self->_get_attribute(RUNTIME_ARGUMENTS);
+        if ($rt_args) {
+            for my $arg (@{$rt_args}) {
+                $args .= $arg . " ";
+                my $i = 1;
+                if (length($args) > $i * 60) {
+                    $args .= "\n" . (" " x 24);
+                    $i++;
+                }
             }
+            $ret .= sprintf("   %-20.20s %s\n","Arguments:",$args);    
         }
-        $ret .= sprintf("   %-20.20s %s\n","Arguments:",$args);    
-        $ret .= "System Properties:\n";
-        for my $prop (@{$jmx4perl->get_attribute(RUNTIME_SYSTEM_PROPERTIES)}) {
-            $ret .= sprintf("   %-40.40s = %s\n",$prop->{key},$prop->{value});
+        my $sys_props = $self->_get_attribute(RUNTIME_SYSTEM_PROPERTIES);
+        if ($sys_props) {
+            $ret .= "System Properties:\n";
+            for my $prop (@{$sys_props}) {
+                $ret .= sprintf("   %-40.40s = %s\n",$prop->{key},$prop->{value});
+            }
         }
     }
     return $ret;
+}
+
+# Fetch version and vendor from jrs77
+sub _server_info_from_jsr77 {
+    my $self = shift;
+    my $info = shift;
+    my $jmx = $self->{jmx4perl};
+
+    my $servers = $jmx->search("*:j2eeType=J2EEServer,*");
+    return "" if (!$servers || !@$servers);
+    
+    # Take first server and lookup its version
+    return $jmx->get_attribute($servers->[0],$info);
+}
+
+
+sub _append_info {
+    my $self = shift;
+    my $r = shift;
+    my $type = shift;
+    my $content = shift;
+    my $label = shift @$content;
+    my $value = $self->_get_attribute(shift @$content);
+    return unless defined($value);
+    if ($type eq "mem") {
+        $value = int($value/(1024*1024)) . " MB";
+    } elsif ($type eq "str" && @$content) {
+        while (@$content) {
+            $value .= " " . $self->_get_attribute(shift @$content);
+        }
+    } elsif ($type eq "duration") {
+        $value = &_format_duration($value);
+    } elsif ($type eq "time") {
+        $value = scalar(localtime($value/1000));
+    }
+    $$r .= sprintf("   %-20.20s: %s\n",$label,$value);
+}
+
+sub _get_attribute { 
+    my $self = shift;
+    
+    my $jmx4perl = $self->{jmx4perl};
+    my @args = $jmx4perl->resolve_alias(shift);
+    return undef unless $args[0];
+    my $request = new JMX::Jmx4Perl::Request(READ,@args);
+    my $response = $jmx4perl->request($request);
+    return undef if $response->status == 404;     # Ignore attributes not found
+    return $response->value if $response->is_ok;
+    die "Error fetching attribute ","@_",": ",$response->error_text;
 }
 
 sub _format_duration {
@@ -397,11 +567,6 @@ sub _format_duration {
     return $ret;    
 }
 
-# Implement this if you want to benefit of the standard
-# way of autodetecting by checking for the version
-sub _try_version {
-    die ref(shift),": _try_version must be implemented by a subclass";
-}
 
 
 =back

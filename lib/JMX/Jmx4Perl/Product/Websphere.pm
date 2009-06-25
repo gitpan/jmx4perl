@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-package JMX::Jmx4Perl::Product::Glassfish2;
+package JMX::Jmx4Perl::Product::Websphere;
 
 use JMX::Jmx4Perl::Product::BaseHandler;
 use strict;
@@ -9,26 +9,34 @@ use Carp qw(croak);
 
 =head1 NAME
 
-JMX::Jmx4Perl::Product::Glassfish2 - Handler for Glassfish, Version 2
+JMX::Jmx4Perl::Product::Websphere - Handler for IBM Websphere
 
 =head1 DESCRIPTION
 
-This handler supports glassfish version 2. (L<https://glassfish.dev.java.net/>)
+This is the product handler support for IBM Websphere Application Server 6 and
+7 (L<http://www.ibm.com/>)
 
 =cut
 
 sub id {
-    return "glassfish2";
+    return "websphere";
 }
 
 sub name {
-    return "Glassfish";
+    return "IBM Websphere Application Server";
 }
 
-sub _try_version {
-    my $self = shift;
-    return $self->try_attribute("version","com.sun.appserv:category=runtime,j2eeType=J2EEDomain,name=com.sun.appserv",
-                                "applicationServerFullVersion");
+
+sub version {
+    return shift->_version_or_vendor("version",qr/^Version\s+(\d.*)\s*$/m);
+}
+
+sub autodetect_pattern {
+    return (shift->original_version_sub,qr/IBM\s+WebSphere\s+Application\s+Server/i);
+}
+
+sub order { 
+    return 100;
 }
 
 sub jsr77 {
@@ -38,17 +46,9 @@ sub jsr77 {
 sub init_aliases {
     return 
     {
-     attributes => 
-   {
-   },
-     operations => 
-   {
-    THREAD_DUMP => [ "com.sun.appserv:category=monitor,server=server,type=JVMInformation", "getThreadDump"]
-   }
-     # Alias => [ "mbean", "attribute", "path" ]
+
     };
 }
-
 
 =head1 LICENSE
 

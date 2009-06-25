@@ -30,6 +30,8 @@ import javax.management.ObjectName;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * A JMX request which knows how to translate from a REST Url. Additionally
@@ -70,11 +72,8 @@ import java.util.*;
  *       a data structure</li>
  *    <li>Type: <b>version</b> ({@link Type#VERSION}<br/>
  *        Parameters: none
- *    <li>Type: <b>config</b> ({@link Type#CONFIG}<br/>
- *       Parameters: <code>param1</code> = "attribute/operation", <code>param2</code> = MBean name,
- *       <code>param3</code> = operation/attribute name <code>param4</code> = config key
- *       <code>param5</code> = config value
- *       <code>param6 .. paramN</code> = Inner path.
+ *    <li>Type: <b>search</b> ({@link Type#SEARCH}<br/>
+ *        Parameters: <code>param1</code> = MBean name pattern
  * </ul>
  * @author roland
  * @since Apr 19, 2009
@@ -88,13 +87,14 @@ public class JmxRequest extends JSONObject {
         // Supported:
         READ("read"),
         LIST("list"),
-
-        // Unsupported:
         WRITE("write"),
         EXEC("exec"),
-        REGISTER_NOTIFICATION("regnotif"),
-        REMOVE_NOTIFICATION("remnotif"),
         VERSION("version"),
+        SEARCH("search"),
+
+        // Unsupported:
+        REGNOTIF("regnotif"),
+        REMNOTIF("remnotif"),
         CONFIG("config");
 
         private String value;
@@ -117,6 +117,8 @@ public class JmxRequest extends JSONObject {
     private List<String> extraArgs;
     private String operation;
     private Type type;
+
+    private static final Pattern SLASH_ESCAPE_PATTERN = Pattern.compile("^-*\\+?$");
 
     JmxRequest(String pPathInfo) {
         try {
@@ -167,28 +169,57 @@ public class JmxRequest extends JSONObject {
         String[] elements = (path.startsWith("/") ? path.substring(1) : path).split("/");
 
         Stack<String> ret = new Stack<String>();
-        for (int i=0;i<elements.length;i++) {
-            if (elements[i].matches("^-+$")) {
-                if (ret.isEmpty()) {
-                    continue;
-                }
-                StringBuffer val = new StringBuffer(ret.pop());
-                for (int j=0;j<elements[i].length();j++) {
-                    val.append("/");
-                }
-                if (i+1 < elements.length) {
-                    val.append(URLDecoder.decode(elements[i+1],"UTF-8"));
-                    i++;
-                }
+        Stack<String> elementStack = new Stack<String>();
 
-                ret.push(val.toString());
-            } else {
-                ret.push(URLDecoder.decode(elements[i],"UTF-8"));
-            }
+        for (int i=elements.length-1;i>=0;i--) {
+            elementStack.push(elements[i]);
         }
+
+        extractElements(ret,elementStack,null);
         // Reverse stack
         Collections.reverse(ret);
         return ret;
+    }
+
+    private void extractElements(Stack<String> ret, Stack<String> pElementStack,StringBuffer previousBuffer)
+            throws UnsupportedEncodingException {
+        if (pElementStack.isEmpty()) {
+            return;
+        }
+        String element = pElementStack.pop();
+        Matcher matcher = SLASH_ESCAPE_PATTERN.matcher(element);
+        if (matcher.matches()) {
+            if (ret.isEmpty()) {
+                return;
+            }
+            StringBuffer val;
+            if (previousBuffer == null) {
+                val = new StringBuffer(ret.pop());
+            } else {
+                val = previousBuffer;
+            }
+            // Decode to value
+            for (int j=0;j<element.length();j++) {
+                val.append("/");
+            }
+            // Special escape at the end indicates that this is the last element in the path
+            if (!element.substring(element.length()-1,1).equals("+")) {
+                if (!pElementStack.isEmpty()) {
+                    val.append(URLDecoder.decode(pElementStack.pop(),"UTF-8"));
+                }
+                extractElements(ret,pElementStack,val);
+                return;
+            } else {
+                ret.push(URLDecoder.decode(val.toString(),"UTF-8"));
+                extractElements(ret,pElementStack,null);
+                return;
+            }
+        }
+        if (previousBuffer != null) {
+            ret.push(URLDecoder.decode(previousBuffer.toString(),"UTF-8"));
+        }
+        ret.push(URLDecoder.decode(element,"UTF-8"));
+        extractElements(ret,pElementStack,null);
     }
 
     private Type extractType(String pTypeS) {
@@ -345,6 +376,17 @@ public class JmxRequest extends JSONObject {
             }
 
             public void setupJSON(JmxRequest r) {
+            }
+        });
+
+        processorMap.put(Type.SEARCH,new Processor() {
+            public void process(JmxRequest r,Stack<String> e) throws MalformedObjectNameException {
+                r.objectNameS = e.pop();
+                r.objectName = new ObjectName(r.objectNameS);
+            }
+
+            public void setupJSON(JmxRequest r) {
+                r.put("mbean",r.objectName.getCanonicalName());
             }
         });
     }

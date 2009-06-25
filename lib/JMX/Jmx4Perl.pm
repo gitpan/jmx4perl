@@ -44,7 +44,7 @@ It uses a traditional request-response paradigma for performing JMX operations
 on a remote Java Virtual machine. 
 
 There a various ways how JMX information can be transfered. For now, a single
-operational mode is supported. It is based on an I<agent>, a small (~30k) Java
+operational mode is supported. It is based on an I<agent>, a small (< 100k) Java
 Servlet, which needs to deployed on a Java application server. It plays the
 role of a proxy, which on one side communicates with the MBeans server in the
 application server and transfers JMX related information via HTPP and JSON to
@@ -86,10 +86,6 @@ listener when a certain event happens.
 
 =back
 
-For now only reading of attributes are supported, but development has start to
-support writing of attributes and executing of JMX operations. Notification
-support might come (or not ;-)
-
 =head1 METHODS
 
 =over
@@ -105,7 +101,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.20_3";
+$VERSION = "0.20_4";
 
 my $REGISTRY = {
                 # Agent based
@@ -128,7 +124,7 @@ sub _register_handlers {
         require $handler_file.".pm";
         next if $handler eq $handler_package."::BaseHandler";
         my $id = eval "${handler}::id()";
-        croak "No id() method on $handler: $@" if $@;
+        die "No id() method on $handler: $@" if $@;
         $PRODUCT_HANDLER{lc $id} = $handler;
         push @id2order, [ lc $id, $handler->order() ];
     }
@@ -173,7 +169,7 @@ sub new {
 
     $class = $REGISTRY->{$mode} || croak "Unknown runtime mode " . $mode;
     if ($product && !$PRODUCT_HANDLER{lc $product}) {
-        croak "No handler for product '$product'. Known Handlers are [".(join ", ",keys %PRODUCT_HANDLER)."]";
+        die "No handler for product '$product'. Known Handlers are [".(join ", ",keys %PRODUCT_HANDLER)."]";
     }
 
     eval "require $class";
@@ -224,7 +220,9 @@ value, this argument is taken as alias (without any path). If you want to use
 aliases together with a path, you need to use the second form with a hash ref
 for providing the (named) arguments. 
 
-This method returns the value as it is returned from the server.
+This method returns the value as it is returned from the server. It will throw
+an exception (die), if an error occurs on the server side, like when the name
+couldn't be found.
 
 =cut 
 
@@ -233,16 +231,19 @@ sub get_attribute {
     my ($object,$attribute,$path) = $self->_extract_get_set_parameters(with_value => 0,params => [@_]);
     croak "No object name provided" unless $object;
 
-    if (ref($object) eq "CODE") {
-        return $self->handle_attribute_by_handler($object);        
+    my $response;
+    if (ref($object) eq "CODE") {       
+        $response = $self->delegate_to_handler($object);                
+    } else {
+        croak "No attribute provided for object $object" unless $attribute;        
+        my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
+        $response = $self->request($request);
     }
-
-    croak "No attribute provided for object $object" unless $attribute;
-
-    my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
-    my $response = $self->request($request);
-    if ($response->status == 404) {
-        return undef;
+    if ($response->is_error) {
+        my $o = "(".$object.",".$attribute.($path ? "," . $path : "").")";
+        croak "The attribute $o is not registered on the server side"
+          if $response->status == 404;
+        croak "Error requesting $o: ",$response->error_text;
     }
     return $response->value;
 }
@@ -289,97 +290,25 @@ only values of the following types
 sub set_attribute { 
     my $self = shift;
 
-    print Dumper(\@_);
     my ($object,$attribute,$path,$value) = 
       $self->_extract_get_set_parameters(with_value => 1,params => [@_]);
     croak "No object name provided" unless $object;
 
+    my $response;
     if (ref($object) eq "CODE") {
-        return $self->handle_attribute_by_handler($object,$value);        
+        $response =  $self->delegate_to_handler($object,$value);        
+    } else {
+        croak "No attribute provided for object $object" unless $attribute;
+        croak "No value to set provided for object $object and attribute $attribute" unless $value;
+        
+        my $request = JMX::Jmx4Perl::Request->new(WRITE,$object,$attribute,$value,$path);
+        $response = $self->request($request);
     }
-    croak "No attribute provided for object $object" unless $attribute;
-    croak "No value to set provided for object $object and attribute $attribute" unless $value;
-
-    my $request = JMX::Jmx4Perl::Request->new(WRITE,$object,$attribute,$value,$path);
-    my $response = $self->request($request);
     if ($response->status == 404) {
         return undef;
     }
     return $response->value;
 }
-
-# Helper method for extracting parameters for the set/get methods.
-sub _extract_get_set_parameters {
-    my $self = shift;
-    my %args = @_;
-    my $p = $args{params};
-    my $f = $p->[0];
-    my $with_value = $args{with_value};
-
-    my ($object,$attribute,$path,$value);
-    if (ref($f) eq "HASH") {
-        $value = $f->{value};
-        if ($f->{alias}) {
-            my $alias_path;
-            ($object,$attribute,$alias_path) = 
-              $self->resolve_alias($f->{alias});
-            if (ref($object) eq "CODE") {
-                # Let the handler do it
-                return ($object,undef,undef,$args{with_value} ? $value : undef);
-            }
-            if ($alias_path) {
-                $path = $f->{path} ? $f->{path} . "/" . $alias_path : $alias_path;
-            } else { 
-                $path = $f->{path};
-            }
-        } else {
-            $object = $f->{mbean};
-            if (!$object && $f->{domain} && ($f->{properties} || $f->{props})) {
-                $object = $f->{domain} . ":";
-                my $href = $f->{properties} || $f->{props};
-                croak "'properties' is not a hashref" unless ref($href);
-                for my $k (keys %{$href}) {
-                    $object .= $k . "=" . $href->{$k};
-                }
-            }
-            $attribute = $f->{attribute};
-            $path = $f->{path};
-        }        
-    } else {
-        if ( (@{$p} == 1 && !$args{with_value}) || 
-             (@{$p} == 2 && $args{with_value})) {
-            # A single argument can only be used as an alias
-            ($object,$attribute,$path) = 
-              $self->resolve_alias($f);
-            $value = $_[1];
-            if (ref($object) eq "CODE") {
-                # Let the handler do it
-                return ($object,undef,undef,$args{with_value} ? $value : undef);
-            }
-        } else {
-            if ($args{with_value}) {
-                ($object,$attribute,$value,$path) = @{$p};
-            } else {
-                ($object,$attribute,$path) = @{$p};
-            }
-        }
-    }
-    return ($object,$attribute,$path,$value);
-}
-
-=item $resp = $jmx->request($request)
-
-Send a request to the underlying agent and return the response. This is an
-abstract method which needs to be overwritten by a subclass. The argument must
-be of type L<JMX::Jmx4Perl::Request> and it returns an object of type
-L<JMX::Jmx4Perl::Response>.
-
-=cut 
-
-sub request {
-    croak "Internal: Must be overwritten by a subclass";    
-}
-
 
 =item $info = $jmx->info($verbose)
 
@@ -399,6 +328,92 @@ sub info {
 }
 
 
+=item $mbean_list = $jmx->search($mbean_pattern)
+
+Search for MBean based on a pattern and return a reference to the list of found
+MBeans. If no MBean can be found, C<undef> is returned. For example, 
+
+ $jmx->search("*:j2eeType=J2EEServer,*")
+
+searches all MBeans whose name are matching this pattern, which are according
+to JSR77 all application servers in all available domains. 
+
+=cut 
+
+sub search {
+    my $self = shift;
+    my $pattern = shift || croak "No pattern provided";
+    
+    my $request = new JMX::Jmx4Perl::Request(SEARCH,$pattern);
+    my $response = $self->request($request);
+
+    return undef if $response->status eq "404"; # nothing found
+    return $response->value;    
+}
+
+=item   $ret = $jmx->execute(...)
+
+  $ret = $jmx->execute($mbean,$operation,$arg1,$arg2,...)
+  $ret = $jmx->execute(ALIAS,$arg1,$arg2,...)
+
+  $value = $jmx->execute({ domain => <domain>, 
+                           properties => { <key> => value }, 
+                           operation => <operation>, 
+                           arguments => [ <arg1>, <arg2>, ... ] })
+  $value = $jmx->execute({ alias => <alias>, 
+                           arguments => [ <arg1,<arg2>, .... ]})
+
+Execute a JMX operation with the given arguments. If used in the second form,
+with an alias as first argument, it is recommended to use the constant as
+exported by L<JMX::Jmx4Perl::Alias>, otherwise it is guessed, whether the first
+string value is an alias or a MBean name. To be sure, use the variant with an
+hashref as argument.
+
+This method will croak, if something fails during execution of this operation
+or when the MBean/Operation combination could not be found.
+
+The return value of this method is the return value of the JMX operation.
+
+=cut
+
+sub execute {
+    my $self = shift;
+
+    my @args = @_;
+    my ($mbean,$operation,$op_args) = $self->_extract_execute_parameters(@_);
+    my $response;
+    if (ref($mbean) eq "CODE") {        
+        $response = $self->delegate_to_handler($mbean,@{$op_args});
+    } else {
+        my $request = new JMX::Jmx4Perl::Request(EXEC,$mbean,$operation,@{$op_args});
+        $response = $self->request($request);
+    }
+    if ($response->is_error) {
+        croak "No MBean ".$mbean." with operation ".$operation.
+          (@$op_args ?  " (Args: [".join(",",@$op_args)."]" : "")." found on the server side"
+            if $response->status == 404;
+        croak "Error executing operation $operation on MBean $mbean: ",$response->error_text;
+    }
+    return $response->value;
+}
+
+
+=item $resp = $jmx->request($request)
+
+Send a request to the underlying agent and return the response. This is an
+abstract method which needs to be overwritten by a subclass. The argument must
+be of type L<JMX::Jmx4Perl::Request> and it returns an object of type
+L<JMX::Jmx4Perl::Response>.
+
+=cut 
+
+sub request {
+    croak "Internal: Must be overwritten by a subclass";    
+}
+
+# ===========================================================================
+# Alias handling
+
 =item ($object,$attribute,$path) = $self->resolve_alias($alias)
 
 Resolve an alias for an attibute. This is done by querying registered product
@@ -414,7 +429,7 @@ server or C<undef> if the handler can not resolve this alias.
 
 A handler can decide to handle the fetching of the alias value directly. In
 this case, this metod returns the code reference which needs to be executed
-with the handler as argument (see "handle_attribute_by_handler") below. 
+with the handler as argument (see "delegate_to_handler") below. 
 
 =cut
 
@@ -426,67 +441,56 @@ sub resolve_alias {
     return $handler->alias($alias);
 }
 
-=item $attribute_value = $self->handle_attribute_by_handler($coderef,$value)
+=item $do_support = $self->supports_alias($alias) 
 
-Execute a subroutine with the current handler as argument and returns the
-return value of this subroutine. This method is used in conjunction with
-C<resolve_alias> to allow handler a more sophisticated way to access
-the MBeanServer. Additionally, it allows for mangling the output, too.
-
-The subroutine is supposed to handle reading and writing of attributes. An
-optional second parameter specifies the value to set. If this is missing, a
-read is requested. 
+Test for checking whether a handler supports a certain alias. 
 
 =cut
 
-sub handle_attribute_by_handler {
+sub supports_alias {
+    my ($object) = shift->resolve_alias(shift);
+    return $object ? 1 : 0;
+}
+
+=item $response = $self->delegate_to_handler($coderef,@args)
+
+Execute a subroutine with the current handler as argument and returns the
+return value of this subroutine. This method is used in conjunction with
+C<resolve_alias> to allow handler a more sophisticated way to access the
+MBeanServer. The method specified by C<$coderef> must return a
+L<JMX::Jmx4Perl::Response> as answer.
+
+The subroutine is supposed to handle reading and writing of attributes and
+execution of operations. Optional additional parameters are given to the subref
+as additional arguments.
+
+=cut
+
+sub delegate_to_handler {
     my $self = shift;
     my $code = shift;
     my $handler = $self->{product_handler} || $self->_create_handler();    
     return &{$code}($handler,@_);
 }
 
-=item $product = $self->product_id()
+=item $product = $self->product()
 
-For supported application servers, this methods returns the name of the
-product. This product is either detected automatically or provided during
+For supported application servers, this methods returns product handler 
+which is an object of type L<JMX::Jmx4Perl::Product::BaseHandler>. 
+
+This product is either detected automatically or provided during
 construction time.
 
-=cut 
+The most interesting methods on this object are C<id()>, C<name()> and
+C<version()> 
+
+=cut
 
 sub product {
     my $self = shift;
     my $handler = $self->{product_handler} || $self->_create_handler();
-    return $handler->name();
-}
-
-sub _create_handler {
-    my $self = shift;
-    $self->{product} ||= $self->_autodetect_product();
-    croak "Cannot autodetect server product" unless $self->{product};
-    
-    $self->{product_handler} = $self->_new_handler($self->{product});
-    return $self->{product_handler};        
-}
-
-sub _autodetect_product {
-    my $self = shift;
-    for my $id (@PRODUCT_HANDLER_ORDERING) {
-        my $handler = $self->_new_handler($id);
-        return $id if $handler->autodetect();
-    }
-    return undef;
-}
-
-sub _new_handler {
-    my $self = shift;
-    my $product = shift;
-
-    my $handler = eval $PRODUCT_HANDLER{$product}."->new(\$self)";
-    croak "Cannot create handler ",$self->{product},": $@" if $@;
     return $handler;
 }
-
 
 =item $value = $jmx->list($path)
 
@@ -576,6 +580,156 @@ sub formatted_list {
 
     my $ret = &_format_map("",$list,\@path,0);
 }
+
+# =============================================================================================== 
+
+# Helper method for extracting parameters for the set/get methods.
+sub _extract_get_set_parameters {
+    my $self = shift;
+    my %args = @_;
+    my $p = $args{params};
+    my $f = $p->[0];
+    my $with_value = $args{with_value};
+
+    my ($object,$attribute,$path,$value);
+    if (ref($f) eq "HASH") {
+        $value = $f->{value};
+        if ($f->{alias}) {
+            my $alias_path;
+            ($object,$attribute,$alias_path) = 
+              $self->resolve_alias($f->{alias});
+            if (ref($object) eq "CODE") {
+                # Let the handler do it
+                return ($object,undef,undef,$args{with_value} ? $value : undef);
+            }
+            croak "No alias ",$f->{alias}," defined for handler ",$self->product->name unless $object; 
+            if ($alias_path) {
+                $path = $f->{path} ? $f->{path} . "/" . $alias_path : $alias_path;
+            } else { 
+                $path = $f->{path};
+            }
+        } else {
+            $object = $f->{mbean} || $self->_glue_mbean_name($f) ||
+              croak "No MBean name or domain + properties given";
+            $attribute = $f->{attribute};
+            $path = $f->{path};
+        }        
+    } else {
+        if ( (@{$p} == 1 && !$args{with_value}) || 
+             (@{$p} == 2 && $args{with_value}) || $self->_is_alias($p->[0])) {
+            # A single argument can only be used as an alias
+            ($object,$attribute,$path) = 
+              $self->resolve_alias($f);
+            $value = $_[1];
+            if (ref($object) eq "CODE") {
+                # Let the handler do it
+                return ($object,undef,undef,$args{with_value} ? $value : undef);
+            }
+            croak "No alias ",$f," defined for handler ",$self->product->name unless $object; 
+        } else {
+            if ($args{with_value}) {
+                ($object,$attribute,$value,$path) = @{$p};
+            } else {
+                ($object,$attribute,$path) = @{$p};
+            }
+        }
+    }
+    return ($object,$attribute,$path,$value);
+}
+
+sub _extract_execute_parameters {
+    my $self = shift;
+    my @args = @_;
+    my ($mbean,$operation,$op_args);
+    if (ref($args[0]) eq "HASH") {
+        my $args = $args[0];
+        if ($args->{alias}) {
+            ($mbean,$operation) = $self->resolve_alias($args->{alias});
+            if (ref($mbean) eq "CODE") {
+                # Alias handles this completely on its own
+                return ($mbean,undef,$args->{arguments} || $args->{args});
+            }
+            croak "No alias ",$args->{alias}," defined for handler ",$self->product->name unless $mbean; 
+        } else {
+            $mbean = $args->{mbean} || $self->_glue_mbean_name($args) || 
+              croak "No MBean name or domain + properties given";
+            $operation = $args->{operation} || croak "No operation given";
+        }
+        $op_args = $args->{arguments} || $args->{args};
+    } else {
+        if ($self->_is_alias($args[0])) {
+            ($mbean,$operation) = $self->resolve_alias($args[0]);
+            shift @args;
+            if (ref($mbean) eq "CODE") {
+                # Alias handles this completely on its own
+                return ($mbean,undef,[ @args ]);
+            }
+            croak "No alias ",$args[0]," defined for handler ",$self->product->name unless $mbean;
+            $op_args = [ @args ];
+        } else {
+            $mbean = shift @args;
+            $operation = shift @args;
+            $op_args = [ @args ];
+        }
+    }
+    return ($mbean,$operation,$op_args);
+}
+
+# Check whether the argument is possibly an alias
+sub _is_alias {
+    my $self = shift;
+    my $alias = shift;
+    if (UNIVERSAL::isa($alias,"JMX::Jmx4Perl::Alias::Object")) {
+        return 1;
+    } elsif (JMX::Jmx4Perl::Alias->by_name($alias)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+sub _glue_mbean_name {
+    my $self = shift;
+    my $f = shift;
+    my $object = undef;
+    if ($f->{domain} && ($f->{properties} || $f->{props})) {
+        $object = $f->{domain} . ":";
+        my $href = $f->{properties} || $f->{props};
+        croak "'properties' is not a hashref" unless ref($href);
+        for my $k (keys %{$href}) {
+            $object .= $k . "=" . $href->{$k};
+        }
+    }
+    return $object;
+}
+
+sub _create_handler {
+    my $self = shift;
+    $self->{product} ||= $self->_autodetect_product();
+    croak "Cannot autodetect server product" unless $self->{product};
+    
+    $self->{product_handler} = $self->_new_handler($self->{product});
+    return $self->{product_handler};        
+}
+
+sub _autodetect_product {
+    my $self = shift;
+    for my $id (@PRODUCT_HANDLER_ORDERING) {
+        my $handler = $self->_new_handler($id);
+        return $id if $handler->autodetect();
+    }
+    return undef;
+}
+
+sub _new_handler {
+    my $self = shift;
+    my $product = shift;
+
+    my $handler = eval $PRODUCT_HANDLER{$product}."->new(\$self)";
+    croak "Cannot create handler ",$self->{product},": $@" if $@;
+    return $handler;
+}
+
 
 my $SPACE = 4;
 my @SEPS = (":");

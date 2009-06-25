@@ -3,20 +3,20 @@
   <property name="war-name" value="j4p-agent.war"/>
 
   <target name="main" depends="war"/>
-  
+
   <target name="clean">
     <delete includeemptydirs="true">
       <fileset dir="target" includes="**/*"/>
       <fileset dir="." includes="*.war"/>
     </delete>
   </target>
-	
+
   <target name="mkdir">
     <mkdir dir="target/classes"/>
   </target>
-  
+
   <target name="compile" depends="mkdir">
-    <javac 	srcdir="src/main/java" 
+    <javac 	srcdir="src/main/java"
             destdir="target/classes"
             includes="**/*.java"
             debug="true"
@@ -30,15 +30,21 @@
     </javac>
 
   </target>
-  
-  <target name="war" depends="compile">
+
+  <target name="jar" depends="compile">
+    <jar destfile="target/j4p-agent.jar" basedir="target/classes"/>
+  </target>
+
+  <target name="war" depends="jar">
     <war destfile="target/${war-name}" webxml="src/main/webapp/WEB-INF/web.xml">
       <lib dir="lib">
         <exclude name="servlet-api*"/>
       </lib>
-      <classes dir="target/classes"/>
+      <lib dir="target">
+        <include name="j4p-agent.jar"/>
+      </lib>
     </war>
     <copy file="target/${war-name}" todir="."/>
   </target>
-  
+
 </project>
