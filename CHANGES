@@ -1,3 +1,18 @@
+0.21
+  - Added '--proxy' for check_jmx4perl and jmx4perl
+  - check_jmx4perl:
+    + Refactored to work within the embedded Nagios Perl interpreter
+      (ePN)  
+    + use relative values in the range from 0 to 100%
+      (for --critical and --warning) instead of [0..1]
+    + Renamed '--base-value' to '--base' since it can take now
+      absolute values (numbers) or "mbean/alias/path" tuples as an
+      argument in addition to alias names.
+    + Added '--operation' which allows for using return values of
+      operations as check values
+    + Added ~ 50 integration tests
+    + Fixed warning
+
 0.20 (2009-06-28)
   - Support for writing attributes and executing operations 
   - Documentation fixes
