@@ -21,15 +21,15 @@ L<check_jmx4perl>
 =head1 SYNOPSIS
 
   # One line in check_jmx4perl to rule them all
-  JMX::Jmx4Perl::CheckJmx4Perl->new(@ARGV)->execute();
+  JMX::Jmx4Perl::CheckJmx4Perl->new()->execute();
 
 =head1 DESCRIPTION
 
 The purpose of this module is to encapsulate a single run of L<check_jmx4perl> 
 in a perl object. This allows for C<check_jmx4perl> to run within the embedded
-Nagios perl interpreter (ePN) wihout interfering with other, potentiall
+Nagios perl interpreter (ePN) wihout interfering with other, potential
 concurrent, runs of this check. Please refer to L<check_jmx4perl> for
-documentation on how to use this check. This module is probbaly E<not> of 
+documentation on how to use this check. This module is probbaly I<not> of 
 general interest and serves only the purpose described above.
 
 =cut
