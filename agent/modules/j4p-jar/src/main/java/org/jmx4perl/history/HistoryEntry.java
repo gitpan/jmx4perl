@@ -1,9 +1,15 @@
 package org.jmx4perl.history;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import java.util.LinkedList;
+import java.io.Serializable;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
- * Copyright (C) 2009 Roland Hu§, roland@cpan.org
+ * Copyright (C) 2009 Roland Huß, roland@cpan.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,16 +25,9 @@ package org.jmx4perl.history;
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
- * A commercial license is available as well. You can either apply the GPL or
- * obtain a commercial license for closed source development. Please contact
- * roland@cpan.org for further information.
+ * A commercial license is available as well. Please contact roland@cpan.org for
+ * further details.
  */
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
-import java.util.LinkedList;
-import java.io.Serializable;
 
 /**
  * @author roland

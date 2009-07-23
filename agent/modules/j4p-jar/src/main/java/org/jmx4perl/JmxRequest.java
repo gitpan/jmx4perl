@@ -1,3 +1,15 @@
+package org.jmx4perl;
+
+import org.json.simple.JSONObject;
+
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -20,18 +32,6 @@
  * A commercial license is available as well. Please contact roland@cpan.org for
  * further details.
  */
-
-package org.jmx4perl;
-
-import org.json.simple.JSONObject;
-
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * A JMX request which knows how to translate from a REST Url. Additionally
@@ -166,7 +166,7 @@ public class JmxRequest extends JSONObject {
     that the pathinfo has been already uri decoded (dont know by heart)
      */
     private Stack<String> extractElementsFromPath(String path) throws UnsupportedEncodingException {
-        String[] elements = (path.startsWith("/") ? path.substring(1) : path).split("/");
+        String[] elements = (path.startsWith("/") ? path.substring(1) : path).split("/+");
 
         Stack<String> ret = new Stack<String>();
         Stack<String> elementStack = new Stack<String>();
@@ -184,6 +184,9 @@ public class JmxRequest extends JSONObject {
     private void extractElements(Stack<String> ret, Stack<String> pElementStack,StringBuffer previousBuffer)
             throws UnsupportedEncodingException {
         if (pElementStack.isEmpty()) {
+            if (previousBuffer != null && previousBuffer.length() > 0) {
+                ret.push(decode(previousBuffer.toString()));
+            }
             return;
         }
         String element = pElementStack.pop();
@@ -205,21 +208,27 @@ public class JmxRequest extends JSONObject {
             // Special escape at the end indicates that this is the last element in the path
             if (!element.substring(element.length()-1,1).equals("+")) {
                 if (!pElementStack.isEmpty()) {
-                    val.append(URLDecoder.decode(pElementStack.pop(),"UTF-8"));
+                    val.append(decode(pElementStack.pop()));
                 }
                 extractElements(ret,pElementStack,val);
                 return;
             } else {
-                ret.push(URLDecoder.decode(val.toString(),"UTF-8"));
+                ret.push(decode(val.toString()));
                 extractElements(ret,pElementStack,null);
                 return;
             }
         }
         if (previousBuffer != null) {
-            ret.push(URLDecoder.decode(previousBuffer.toString(),"UTF-8"));
+            ret.push(decode(previousBuffer.toString()));
         }
-        ret.push(URLDecoder.decode(element,"UTF-8"));
+        ret.push(decode(element));
         extractElements(ret,pElementStack,null);
+    }
+
+    private String decode(String s) {
+        return s;
+        //return URLDecoder.decode(s,"UTF-8");
+
     }
 
     private Type extractType(String pTypeS) {

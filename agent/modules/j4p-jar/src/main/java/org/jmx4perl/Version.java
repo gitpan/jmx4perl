@@ -1,7 +1,9 @@
+package org.jmx4perl;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
- * Copyright (C) 2009 Roland Hu§, roland@cpan.org
+ * Copyright (C) 2009 Roland Huß, roland@cpan.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,8 +23,6 @@
  * further details.
  */
 
-package org.jmx4perl;
-
 /**
  * Class holding the version of this agent. This gets updated automatically
  * when jmx4perl is build.
@@ -31,7 +31,7 @@ package org.jmx4perl;
  * @since Jun 11, 2009
  */
 public class Version {
-    private static String VERSION = "0.21";
+    private static String VERSION = "0.22_1";
 
     public static String getVersion() {
         return VERSION;

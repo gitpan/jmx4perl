@@ -1,3 +1,26 @@
+package org.jmx4perl;
+
+
+import org.jmx4perl.config.Config;
+import org.jmx4perl.config.DebugStore;
+import org.jmx4perl.converter.StringToObjectConverter;
+import org.jmx4perl.converter.attribute.ObjectToJsonConverter;
+import org.jmx4perl.handler.*;
+import org.jmx4perl.history.HistoryStore;
+import org.json.simple.JSONObject;
+
+import javax.management.*;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -17,33 +40,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
- * A commercial license is available as well. You can either apply the GPL or
- * obtain a commercial license for closed source development. Please contact
- * roland@cpan.org for further information.
+ * A commercial license is available as well. Please contact roland@cpan.org for
+ * further details.
  */
-
-package org.jmx4perl;
-
-
-import org.jmx4perl.config.Config;
-import org.jmx4perl.config.DebugStore;
-import org.jmx4perl.converter.StringToObjectConverter;
-import org.jmx4perl.converter.attribute.AttributeConverter;
-import org.jmx4perl.handler.*;
-import org.jmx4perl.history.HistoryStore;
-import org.json.simple.JSONObject;
-
-import javax.management.*;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Agent servlet which connects to a local JMX MBeanServer for
@@ -61,7 +60,7 @@ import java.util.Map;
  * like strings or numbers, collections, arrays and maps are also supported (which
  * translate into the corresponding JSON structure). Additional the OpenMBean types
  * {@link javax.management.openmbean.CompositeData} and {@link javax.management.openmbean.TabularData}
- * are supported as well. Refer to {@link org.jmx4perl.converter.attribute.AttributeConverter}
+ * are supported as well. Refer to {@link org.jmx4perl.converter.attribute.ObjectToJsonConverter}
  * for additional information.
  *
  * For the client part, please read the documentation of
@@ -74,7 +73,7 @@ public class AgentServlet extends HttpServlet {
 
     // Converter for converting various attribute object types
     // a JSON representation
-    private AttributeConverter attributeConverter;
+    private ObjectToJsonConverter objectToJsonConverter;
 
     // String to object converters for setting attributes and arguments
     // of operations
@@ -109,7 +108,7 @@ public class AgentServlet extends HttpServlet {
 
         // Central objects
         stringToObjectConverter = new StringToObjectConverter();
-        attributeConverter = new AttributeConverter(stringToObjectConverter);
+        objectToJsonConverter = new ObjectToJsonConverter(stringToObjectConverter);
 
         registerRequestHandler();
         registerOwnMBeans();
@@ -151,7 +150,7 @@ public class AgentServlet extends HttpServlet {
             Object retValue = callRequestHandler(jmxReq);
             if (debug) log("Return: " + retValue);
 
-            json = attributeConverter.convertToJson(retValue,jmxReq);
+            json = objectToJsonConverter.convertToJson(retValue,jmxReq);
             historyStore.updateAndAdd(jmxReq,json);
 
             json.put("status",200 /* success */);
@@ -229,7 +228,7 @@ public class AgentServlet extends HttpServlet {
     private void registerRequestHandler() {
         RequestHandler handlers[] = {
                 new ReadHandler(),
-                new WriteHandler(attributeConverter),
+                new WriteHandler(objectToJsonConverter),
                 new ExecHandler(stringToObjectConverter),
                 new ListHandler(),
                 new VersionHandler(),
@@ -286,17 +285,14 @@ public class AgentServlet extends HttpServlet {
 
     // Remove MBeans again.
     private void unregisterOwnMBeans() {
-        if (configMBean != null) {
-            ObjectName name = null;
+        if (configMBeanName != null) {
             try {
-                if (configMBean != null) {
-                    mBeanServerHandler.unregisterMBean(configMBeanName);
-                }
+                mBeanServerHandler.unregisterMBean(configMBeanName);
             } catch (MalformedObjectNameException e) {
                 // wont happen
                 log("Invalid name for config MBean: " + e,e);
             } catch (InstanceNotFoundException e) {
-                log("No Mbean registered with name " + name + ": " + e,e);
+                log("No Mbean registered with name " + configMBeanName + ": " + e,e);
             } catch (MBeanRegistrationException e) {
                 log("Cannot unregister MBean: " + e,e);
             }

@@ -1,3 +1,17 @@
+package org.jmx4perl.converter.attribute;
+
+import org.jmx4perl.converter.StringToObjectConverter;
+import org.json.simple.JSONArray;
+
+import javax.management.AttributeNotFoundException;
+import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -17,35 +31,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
-* A commercial license is available as well. Please contact roland@cpan.org for
+ * A commercial license is available as well. Please contact roland@cpan.org for
  * further details.
-  */
-
-package org.jmx4perl.converter.attribute;
-
-import org.jmx4perl.converter.StringToObjectConverter;
-import org.json.simple.JSONArray;
-
-import javax.management.AttributeNotFoundException;
-import javax.management.openmbean.CompositeData;
-import javax.management.openmbean.TabularData;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Stack;
+ */
 
 /**
  * @author roland
  * @since Apr 19, 2009
  */
-public class TabularDataHandler implements AttributeConverter.Handler {
+public class TabularDataHandler implements ObjectToJsonConverter.Handler {
 
     public Class getType() {
         return TabularData.class;
     }
 
-    public Object extractObject(AttributeConverter pConverter, Object pValue,
+    public Object extractObject(ObjectToJsonConverter pConverter, Object pValue,
                          Stack<String> pExtraArgs,boolean jsonify) throws AttributeNotFoundException {
         TabularData td = (TabularData) pValue;
 

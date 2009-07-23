@@ -178,25 +178,36 @@ sub request_url {
     my $request = shift;
     my $url = $self->cfg('url') || croak "No base url given in configuration";
     $url .= "/" unless $url =~ m|/$|;
+    
     my $type = $request->get("type");
-    $url .= $type . "/";
-    $url .= $self->_escape($request->get("mbean"));
+    my $req = $type . "/";
+    $req .= $self->_escape($request->get("mbean"));
     if ($type eq READ) {
-        $url .= "/" . $self->_escape($request->get("attribute"));
-        $url .= "/" . $self->_escape($request->get("path")) if defined($request->get("path"));
+        $req .= "/" . $self->_escape($request->get("attribute"));
+        $req .= $self->_extract_path($request->get("path"));
     } elsif ($type eq WRITE) {
-        $url .= "/" . $self->_escape($request->get("attribute"));
-        $url .= "/" . $self->_escape($self->_null_escape($request->get("value")));
-        $url .= "/" . $self->_escape($request->get("path")) if defined($request->get("path"));
+        $req .= "/" . $self->_escape($request->get("attribute"));
+        $req .= "/" . $self->_escape($self->_null_escape($request->get("value")));
+        $req .= $self->_extract_path($request->get("path"));
     } elsif ($type eq LIST) {
-        $url .= "/" . $self->_escape($request->get("path")) if defined($request->get("path"));
+        $req .= $self->_extract_path($request->get("path"));
     } elsif ($type eq EXEC) {
-        $url .= "/" . $self->_escape($request->get("operation"));
-        $url .= "/" . $self->_escape($self->_null_escape($_)) for @{$request->get("args")};
+        $req .= "/" . $self->_escape($request->get("operation"));
+        $req .= "/" . $self->_escape($self->_null_escape($_)) for @{$request->get("args")};
     } elsif ($type eq SEARCH) {
         # Nothing further to append.
     }
-    return $url;
+    # Squeeze multiple slashes
+    $req =~ s|/{2,}|/|g;
+    return $url . $req;
+}
+
+# Extract path by splitting it up at "/", escape the parts, and join them again
+sub _extract_path {
+    my $self = shift;
+    my $path = shift;
+    return "" unless $path;
+    return "/" . join("/",map { $self->_escape($_) } split(m|/|,$path));
 }
 
 # Escape '/' which are used as separators by using "/-/" as an escape sequence
@@ -207,6 +218,7 @@ sub request_url {
 sub _escape {
     my $self = shift;
     my $input = shift;
+    my $opts = { @_ };
     $input =~ s|(/+)|"/" . ('-' x length($1)) . "/"|eg;
     $input =~ s|-/$|+/|; # The last slash needs a special escape
     return URI::Escape::uri_escape_utf8($input,"^A-Za-z0-9\-_.!~*'()/");   # Added "/" to

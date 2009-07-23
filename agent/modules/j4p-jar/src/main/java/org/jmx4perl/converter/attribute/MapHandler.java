@@ -1,3 +1,13 @@
+package org.jmx4perl.converter.attribute;
+
+import org.jmx4perl.converter.StringToObjectConverter;
+import org.json.simple.JSONObject;
+
+import javax.management.AttributeNotFoundException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
+import java.util.Stack;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -21,27 +31,17 @@
  * further details.
  */
 
-package org.jmx4perl.converter.attribute;
-
-import org.jmx4perl.converter.StringToObjectConverter;
-import org.json.simple.JSONObject;
-
-import javax.management.AttributeNotFoundException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
-import java.util.Stack;
-
 /**
  * @author roland
  * @since Apr 19, 2009
  */
-public class MapHandler implements AttributeConverter.Handler {
+public class MapHandler implements ObjectToJsonConverter.Handler {
 
     public Class getType() {
         return Map.class;
     }
 
-    public Object extractObject(AttributeConverter pConverter, Object pValue,
+    public Object extractObject(ObjectToJsonConverter pConverter, Object pValue,
                          Stack<String> pExtraArgs,boolean jsonify) throws AttributeNotFoundException {
         Map<Object,Object> map = (Map<Object,Object>) pValue;
 

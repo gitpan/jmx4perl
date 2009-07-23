@@ -252,7 +252,14 @@ sub alias {
         $alias = JMX::Jmx4Perl::Alias->by_name($alias_or_name) 
           || croak "No alias $alias_or_name known";
     }
-    my $aliasref = $self->resolve_alias($alias) || $alias->default();
+    my $resolved_ref = $self->resolve_alias($alias);
+    # It has been defined by the handler, but set to 0. So it doesn't 
+    # support this particular alias
+    return undef if (defined($resolved_ref) && !$resolved_ref);
+    # If the handler doesn't define the ref (so it's undef),
+    # use the default
+    my $aliasref =  $resolved_ref || $alias->default();
+    # If there is no default, then there is no support, too.
     return undef unless defined($aliasref);
 
     return $aliasref if (ref($aliasref) eq "CODE"); # return coderefs directly
@@ -296,7 +303,7 @@ sub resolve_alias {
 
 =item my $aliases = $self->init_aliases()
 
-Metho used during construction of a handler for obtaining a translation map of
+Method used during construction of a handler for obtaining a translation map of
 aliases to the real values. Each specific handler can overwrite this method to
 return is own resolving map. The returned map has two top level keys:
 C<attributes> and C<operations>. Below these keys are the maps for attribute
@@ -321,11 +328,15 @@ return an arrayref in the form described above.
 
 =item *
 
-A coderef, which is executed when L<JMX::Jmx4Perl->get_attribute()> is called
-and which is supossed to do the complete lookup. This is the most flexible way
-for a handler to do anything he likes when an attribute value is requested or
+A coderef, which is executed when C<JMX::Jmx4Perl->get_attribute()> or
+C<JMX::Jmx4Perl->execute()> is called and which is supossed to do the complete
+lookup. The first argument to the subroutine is the handler which can be used
+to access the L<JMX::Jmx4Perl> object. The additional argument are either the
+value to set (for C<JMX::Jmx4Perl->set_attribute()> or the operation's
+arguments for C<JMX::Jmx4Perl->execute()>. This is the most flexible way for a
+handler to do anything it likes to do when an attribute value is requested or
 an operation is about to be executed. You have to return a
-L<JMX::Jmx4Perl::Response> object. 
+L<JMX::Jmx4Perl::Response> object.
 
 =back
 

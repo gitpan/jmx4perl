@@ -101,7 +101,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.21";
+$VERSION = "0.22_1";
 
 my $REGISTRY = {
                 # Agent based
@@ -203,7 +203,7 @@ Read a JMX attribute. In the first form, you provide the MBean name, the
 attribute name and an optional path as positional arguments. The second
 variant uses named parameters from a hashref. 
 
-The Mbean name can be specified with the canoncial name (key C<mbean>), or with
+The Mbean name can be specified with the canonical name (key C<mbean>), or with
 a domain name (key C<domain>) and one or more properties (key C<properties> or
 C<props>) which contain key-value pairs in a Hashref. For more about naming of
 MBeans please refer to
@@ -331,7 +331,8 @@ sub info {
 =item $mbean_list = $jmx->search($mbean_pattern)
 
 Search for MBean based on a pattern and return a reference to the list of found
-MBeans. If no MBean can be found, C<undef> is returned. For example, 
+MBeans names (as string). If no MBean can be found, C<undef> is returned. For
+example, 
 
  $jmx->search("*:j2eeType=J2EEServer,*")
 
@@ -348,6 +349,9 @@ sub search {
     my $response = $self->request($request);
 
     return undef if $response->status eq "404"; # nothing found
+    if ($response->is_error) {
+        croak "Error searching for $pattern: ",$response->error_text;
+    }
     return $response->value;    
 }
 

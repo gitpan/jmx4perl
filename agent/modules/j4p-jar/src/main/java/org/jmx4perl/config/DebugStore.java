@@ -1,7 +1,13 @@
+package org.jmx4perl.config;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.LinkedList;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
- * Copyright (C) 2009 Roland Hu§, roland@cpan.org
+ * Copyright (C) 2009 Roland Huß, roland@cpan.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,12 +26,6 @@
  * A commercial license is available as well. Please contact roland@cpan.org for
  * further details.
  */
-
-package org.jmx4perl.config;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.LinkedList;
 
 /**
  * Simple store for remembering debug info and returning it via a JMX operation

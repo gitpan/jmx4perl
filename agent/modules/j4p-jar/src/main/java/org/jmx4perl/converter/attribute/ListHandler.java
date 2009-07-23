@@ -1,3 +1,14 @@
+package org.jmx4perl.converter.attribute;
+
+import org.jmx4perl.converter.StringToObjectConverter;
+import org.json.simple.JSONArray;
+
+import javax.management.AttributeNotFoundException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Stack;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -21,28 +32,17 @@
  * further details.
  */
 
-package org.jmx4perl.converter.attribute;
-
-import org.jmx4perl.converter.StringToObjectConverter;
-import org.json.simple.JSONArray;
-
-import javax.management.AttributeNotFoundException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Stack;
-
 /**
  * @author roland
  * @since Apr 19, 2009
  */
-public class ListHandler implements AttributeConverter.Handler {
+public class ListHandler implements ObjectToJsonConverter.Handler {
 
     public Class getType() {
         return List.class;
     }
 
-    public Object extractObject(AttributeConverter pConverter, Object pValue, Stack<String> pExtraArgs,boolean jsonify)
+    public Object extractObject(ObjectToJsonConverter pConverter, Object pValue, Stack<String> pExtraArgs,boolean jsonify)
             throws AttributeNotFoundException {
         List list = (List) pValue;
         List ret;

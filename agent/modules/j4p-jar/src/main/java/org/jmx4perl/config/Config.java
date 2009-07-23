@@ -1,7 +1,21 @@
+package org.jmx4perl.config;
+
+import org.jmx4perl.MBeanServerHandler;
+import org.jmx4perl.history.HistoryKey;
+import org.jmx4perl.history.HistoryStore;
+
+import javax.management.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.lang.management.ManagementFactory;
+import java.util.Set;
+
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
- * Copyright (C) 2009 Roland Hu§, roland@cpan.org
+ * Copyright (C) 2009 Roland Huß, roland@cpan.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,20 +34,6 @@
  * A commercial license is available as well. Please contact roland@cpan.org for
  * further details.
  */
-
-package org.jmx4perl.config;
-
-import org.jmx4perl.MBeanServerHandler;
-import org.jmx4perl.history.HistoryKey;
-import org.jmx4perl.history.HistoryStore;
-
-import javax.management.*;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.lang.management.ManagementFactory;
-import java.util.Set;
-
 
 /**
  * @author roland

@@ -1,3 +1,15 @@
+package org.jmx4perl.converter.attribute;
+
+import org.jmx4perl.converter.StringToObjectConverter;
+import org.json.simple.JSONObject;
+
+import javax.management.AttributeNotFoundException;
+import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.InvalidKeyException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Set;
+import java.util.Stack;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
@@ -21,29 +33,17 @@
  * further details.
  */
 
-package org.jmx4perl.converter.attribute;
-
-import org.jmx4perl.converter.StringToObjectConverter;
-import org.json.simple.JSONObject;
-
-import javax.management.AttributeNotFoundException;
-import javax.management.openmbean.CompositeData;
-import javax.management.openmbean.InvalidKeyException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Set;
-import java.util.Stack;
-
 /**
  * @author roland
  * @since Apr 19, 2009
  */
-public class CompositeHandler implements AttributeConverter.Handler {
+public class CompositeHandler implements ObjectToJsonConverter.Handler {
 
     public Class getType() {
         return CompositeData.class;
     }
 
-    public Object extractObject(AttributeConverter pConverter, Object pValue,
+    public Object extractObject(ObjectToJsonConverter pConverter, Object pValue,
                          Stack<String> pExtraArgs,boolean jsonify) throws AttributeNotFoundException {
         CompositeData cd = (CompositeData) pValue;
 
@@ -69,6 +69,6 @@ public class CompositeHandler implements AttributeConverter.Handler {
 
     public Object setObjectValue(StringToObjectConverter pConverter, Object pInner, String pAttribute, String pValue)
             throws IllegalAccessException, InvocationTargetException {
-        throw new IllegalArgumentException("ComposideData cannot be written to");
+        throw new IllegalArgumentException("CompositeData cannot be written to");
     }
 }

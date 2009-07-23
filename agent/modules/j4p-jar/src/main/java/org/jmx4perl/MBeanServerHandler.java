@@ -1,7 +1,19 @@
+package org.jmx4perl;
+
+import org.jmx4perl.handler.RequestHandler;
+
+import javax.management.*;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import java.util.*;
+import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
+
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
  *
- * Copyright (C) 2009 Roland Hu§, roland@cpan.org
+ * Copyright (C) 2009 Roland Huß, roland@cpan.org
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,18 +32,6 @@
  * A commercial license is available as well. Please contact roland@cpan.org for
  * further details.
  */
-
-package org.jmx4perl;
-
-import org.jmx4perl.handler.RequestHandler;
-
-import javax.management.*;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import java.util.*;
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Handler for finding and merging various MBeanServers.
