@@ -1,7 +1,6 @@
-package org.jmx4perl.converter.attribute.stats;
+package org.jmx4perl.converter.attribute.simplifier;
 
-import javax.management.j2ee.statistics.CountStatistic;
-import java.util.Arrays;
+import java.util.Map;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -28,19 +27,26 @@ import java.util.Arrays;
 
 /**
  * @author roland
- * @since Jul 10, 2009
+ * @since Jul 27, 2009
  */
-public class CountStatisticHandler extends StatisticHandler {
-
-    public CountStatisticHandler() {
-        super();
-        supportedAttributes.addAll(Arrays.asList(
-                "count"
-        ));
+public class ClassHandler extends SimplifierHandler<Class> {
+    public ClassHandler() {
+        super(Class.class);
     }
 
-    @Override
-    public Class getType() {
-        return CountStatistic.class;
+    void init(Map<String, Extractor<Class>> pStringExtractorMap) {
+        pStringExtractorMap.put("name",new Extractor<Class>() {
+            public Object extract(Class value) {
+                return value.getName();
+            }
+        });
+        pStringExtractorMap.put("interfaces",new Extractor<Class>() {
+            public Object extract(Class value) throws SkipAttributeException {
+                if (value.isInterface()) {
+                    throw new SkipAttributeException();
+                }
+                return value.getInterfaces();
+            }
+        });
     }
 }

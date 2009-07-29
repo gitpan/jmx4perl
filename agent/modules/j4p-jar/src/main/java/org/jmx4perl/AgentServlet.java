@@ -3,6 +3,8 @@ package org.jmx4perl;
 
 import org.jmx4perl.config.Config;
 import org.jmx4perl.config.DebugStore;
+import org.jmx4perl.config.Restrictor;
+import org.jmx4perl.config.RestrictorFactory;
 import org.jmx4perl.converter.StringToObjectConverter;
 import org.jmx4perl.converter.attribute.ObjectToJsonConverter;
 import org.jmx4perl.handler.*;
@@ -139,7 +141,7 @@ public class AgentServlet extends HttpServlet {
         int code = 200;
         Throwable throwable = null;
         try {
-            jmxReq = new JmxRequest(pReq.getPathInfo());
+            jmxReq = new JmxRequest(pReq.getPathInfo(),pReq.getParameterMap());
             boolean debug = isDebug() && !"debugInfo".equals(jmxReq.getOperation());
             if (debug) {
                 log("URI: " + pReq.getRequestURI());
@@ -170,6 +172,10 @@ public class AgentServlet extends HttpServlet {
         } catch (IllegalStateException exp) {
             code = 500;
             throwable = exp;
+        } catch (SecurityException exception) {
+            code = 403;
+            // Wipe out stacktrace
+            throwable = new Exception(exception.getMessage());
         } catch (Exception exp) {
             code = 500;
             throwable = exp;
@@ -226,13 +232,16 @@ public class AgentServlet extends HttpServlet {
 
 
     private void registerRequestHandler() {
+
+        Restrictor restrictor = RestrictorFactory.buildRestrictor();
+
         RequestHandler handlers[] = {
-                new ReadHandler(),
-                new WriteHandler(objectToJsonConverter),
-                new ExecHandler(stringToObjectConverter),
-                new ListHandler(),
-                new VersionHandler(),
-                new SearchHandler()
+                new ReadHandler(restrictor),
+                new WriteHandler(restrictor,objectToJsonConverter),
+                new ExecHandler(restrictor,stringToObjectConverter),
+                new ListHandler(restrictor),
+                new VersionHandler(restrictor),
+                new SearchHandler(restrictor)
         };
 
         requestHandlerMap = new HashMap<JmxRequest.Type,RequestHandler>();

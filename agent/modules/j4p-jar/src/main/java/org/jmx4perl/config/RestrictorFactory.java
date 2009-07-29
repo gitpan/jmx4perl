@@ -1,7 +1,6 @@
-package org.jmx4perl.converter.attribute.stats;
+package org.jmx4perl.config;
 
-import javax.management.j2ee.statistics.TimeStatistic;
-import java.util.Arrays;
+import java.io.InputStream;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -27,20 +26,29 @@ import java.util.Arrays;
  */
 
 /**
+ * Factory for obtaining the proper {@link org.jmx4perl.config.Restrictor}
+ *
  * @author roland
- * @since Jul 10, 2009
+ * @since Jul 28, 2009
  */
-public class TimeStatisticHandler extends StatisticHandler {
+public class RestrictorFactory {
 
-    public TimeStatisticHandler() {
-        super();
-        supportedAttributes.addAll(Arrays.asList(
-                "count","maxTime","minTime","totalTime"
-        ));
-    }
+    private RestrictorFactory() { }
 
-    @Override
-    public Class getType() {
-        return TimeStatistic.class;
+    /**
+     * Get the installed restrictor or the {@link org.jmx4perl.config.AllowAllRestrictor}
+     * is no restrictions are in effect.
+     *
+     * @return the restrictor
+     */
+    static public Restrictor buildRestrictor() {
+
+        InputStream is =
+                Thread.currentThread().getContextClassLoader().getResourceAsStream("/j4p-access.xml");
+        if (is != null) {
+            return new PolicyBasedRestrictor(is);
+        } else {
+            return new AllowAllRestrictor();
+        }
     }
 }

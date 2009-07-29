@@ -1,6 +1,7 @@
 package org.jmx4perl.handler;
 
 import org.jmx4perl.JmxRequest;
+import org.jmx4perl.config.Restrictor;
 import org.jmx4perl.converter.StringToObjectConverter;
 
 import javax.management.*;
@@ -36,16 +37,23 @@ import java.util.List;
 public class ExecHandler extends RequestHandler {
     private StringToObjectConverter stringToObjectConverter;
 
-    public ExecHandler(StringToObjectConverter pStringToObjectConverter) {
+    public ExecHandler(Restrictor pRestrictor,StringToObjectConverter pStringToObjectConverter) {
+        super(pRestrictor);
         stringToObjectConverter = pStringToObjectConverter;
     }
 
+    @Override
     public JmxRequest.Type getType() {
         return JmxRequest.Type.EXEC;
     }
 
-    public Object handleRequest(MBeanServer server, JmxRequest request)
+    @Override
+    public Object doHandleRequest(MBeanServer server, JmxRequest request)
             throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException {
+        if (!restrictor.isOperationAllowed(request.getObjectName(),request.getOperation())) {
+            throw new SecurityException("Operation " + request.getOperation() +
+                    " forbidden for MBean " + request.getObjectNameAsString());
+        }
         String[] paramClazzes;
         paramClazzes = extractOperationTypes(server,request);
         Object[] params = new Object[paramClazzes.length];
@@ -58,6 +66,14 @@ public class ExecHandler extends RequestHandler {
         for (int i = 0;i <  paramClazzes.length; i++) {
             params[i] = stringToObjectConverter.convertFromString(paramClazzes[i],args.get(i));
         }
+
+        // Remove args from request, so that the rest can be interpreted as path for the return
+        // value
+        for (int i = 0; i < paramClazzes.length; i++) {
+            // Remove from front
+            args.remove(0);
+        }
+
         return server.invoke(request.getObjectName(),request.getOperation(),params,paramClazzes);
     }
 

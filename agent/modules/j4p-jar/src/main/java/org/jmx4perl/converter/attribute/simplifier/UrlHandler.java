@@ -1,7 +1,7 @@
-package org.jmx4perl.converter.attribute.stats;
+package org.jmx4perl.converter.attribute.simplifier;
 
-import javax.management.j2ee.statistics.BoundaryStatistic;
-import java.util.Arrays;
+import java.util.Map;
+import java.net.URL;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -28,19 +28,19 @@ import java.util.Arrays;
 
 /**
  * @author roland
- * @since Jul 10, 2009
+ * @since Jul 27, 2009
  */
-public class BoundaryStatisticHandler extends StatisticHandler {
-
-    public BoundaryStatisticHandler() {
-        super();
-        supportedAttributes.addAll(Arrays.asList(
-                "upperBound","lowerBound"
-        ));
+public class UrlHandler extends SimplifierHandler<URL> {
+    public UrlHandler() {
+        super(URL.class);
     }
 
     @Override
-    public Class getType() {
-        return BoundaryStatistic.class;
+    void init(Map<String, Extractor<URL>> pStringExtractorMap) {
+        pStringExtractorMap.put("url",new Extractor<URL>() {
+            public Object extract(URL value) {
+                return value.toExternalForm();
+            }
+        });
     }
 }

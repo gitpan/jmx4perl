@@ -1,7 +1,8 @@
-package org.jmx4perl.converter.attribute.stats;
+package org.jmx4perl.config;
 
-import javax.management.j2ee.statistics.BoundedRangeStatistic;
-import java.util.Arrays;
+import org.jmx4perl.JmxRequest;
+
+import javax.management.ObjectName;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -27,20 +28,26 @@ import java.util.Arrays;
  */
 
 /**
+ * A restrictor which simply allows everything. Used, when no restrict-access.xml is
+ * present.
+ *
  * @author roland
- * @since Jul 10, 2009
+ * @since Jul 28, 2009
  */
-public class BoundedRangeStatisticHandler extends StatisticHandler {
-
-    public BoundedRangeStatisticHandler() {
-        super();
-        supportedAttributes.addAll(Arrays.asList(
-                "highWaterMark","lowWaterMark","current","upperBound","lowerBound"
-        ));
+public class AllowAllRestrictor implements Restrictor {
+    public boolean isTypeAllowed(JmxRequest.Type pType) {
+        return true;
     }
 
-    @Override
-    public Class getType() {
-        return BoundedRangeStatistic.class;
+    public boolean isAttributeReadAllowed(ObjectName pName, String pAttribute) {
+        return true;
+    }
+
+    public boolean isAttributeWriteAllowed(ObjectName pName, String pAttribute) {
+        return true;
+    }
+
+    public boolean isOperationAllowed(ObjectName pName, String pOperation) {
+        return true;
     }
 }
