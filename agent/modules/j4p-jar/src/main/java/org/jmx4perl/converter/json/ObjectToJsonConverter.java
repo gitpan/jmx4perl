@@ -1,12 +1,12 @@
-package org.jmx4perl.converter.attribute;
+package org.jmx4perl.converter.json;
 
 
 import org.jmx4perl.JmxRequest;
 import org.jmx4perl.converter.StringToObjectConverter;
-import org.jmx4perl.converter.attribute.simplifier.ClassHandler;
-import org.jmx4perl.converter.attribute.simplifier.DomElementHandler;
-import org.jmx4perl.converter.attribute.simplifier.FileHandler;
-import org.jmx4perl.converter.attribute.simplifier.UrlHandler;
+import org.jmx4perl.converter.json.simplifier.ClassHandler;
+import org.jmx4perl.converter.json.simplifier.DomElementHandler;
+import org.jmx4perl.converter.json.simplifier.FileHandler;
+import org.jmx4perl.converter.json.simplifier.UrlHandler;
 import org.json.simple.JSONObject;
 
 import javax.management.AttributeNotFoundException;
@@ -252,6 +252,7 @@ public class ObjectToJsonConverter {
 
 
     // Check whether JSR77 classes are available
+    // Not used for the moment, but left here for reference
     private boolean knowsAboutJsr77() {
         try {
             Class.forName("javax.management.j2ee.statistics.Stats");
