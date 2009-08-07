@@ -71,7 +71,6 @@ sub execute {
         
         my $resp = $self->_send_request($jmx,$request);
         my $value = $resp->value;
-        
         # Delta handling
         my $delta = $o->get("delta");
         if (defined($delta)) {
@@ -89,9 +88,9 @@ sub execute {
         $np->add_perfdata(label => $self->_get_name(),value => $value,
                           critical => $o->critical, warning => $o->warning, 
                           $o->base ? (uom => '%') : ());
-        
-        # Verify thresholds
-        my $code = $np->check_threshold($value);    
+
+        my $code = $self->_check_threshhold($value);
+
         return $np->nagios_exit($code,$self->_get_name(). " : Threshold " . 
                          ($code == CRITICAL ? $o->critical : $o->warning) . 
                          " failed for value $value") if $code != OK;
@@ -203,7 +202,8 @@ sub _verify_response {
         $np->nagios_die("Error: ".$resp->status." ".$resp->error_text."\nStacktrace:\n".$resp->stacktrace);
     }
     if (!defined($resp->value)) {
-        $np->nagios_die("JMX Request " . $self->_get_name() . " failed " . Dumper($resp));
+        $np->nagios_die("JMX Request " . $self->_get_name() . " returned a null value which can't be used yet. " . 
+                        "Please let me know, whether you need such check for a null value");
     }
     if (ref($resp->value)) { 
         $np->nagios_die("Response value is a ".ref($resp->value).
@@ -222,11 +222,6 @@ sub _verify_and_initialize {
     $np->nagios_die("At least a critical or warning threshold must be given") 
       if ((!defined($o->critical) && !defined($o->warning)));
     
-    $np->set_thresholds
-      (
-       $o->critical ? (critical => $o->critical) : (),
-       $o->warning ? (warning => $o->warning) : ()
-      );    
 }
 
 sub _delta_value {
@@ -277,6 +272,47 @@ sub _base_value {
     my $resp = $self->_send_request($jmx,$request);
     die "Base value is not a plain value but ",Dumper($resp->value) if ref($resp->value);
     return $resp->value;
+}
+
+sub _check_threshhold {
+    my $self = shift;
+    my $value = shift;
+    my $np = $self->{np};
+    my $o = $self->{opts};
+    my $numeric_check;
+    if ($o->numeric || $o->string) {
+        $numeric_check = $o->numeric ? 1 : 0;
+    } else {
+        $numeric_check = looks_like_number($value);
+    }
+    if ($numeric_check) {
+        # Verify numeric thresholds
+        my @ths = 
+          (
+           $o->critical ? (critical => $o->critical) : (),
+           $o->warning ? (warning => $o->warning) : ()
+          );            
+        return $np->check_threshold(check => $value,@ths);    
+    } else {
+        return
+          $self->_check_string_threshold($value,CRITICAL,$o->critical) ||
+            $self->_check_string_threshold($value,WARNING,$o->warning) ||
+              OK;
+    }
+}
+
+sub _check_string_threshold {
+    my $self = shift;
+    my ($value,$level,$check_value) = @_;
+    return undef unless $check_value;
+    if ($check_value =~ m|^\s*qr(.)(.*)\1\s*$|) {
+        return $value =~ m/$2/ ? $level : undef;
+    }
+    if ($check_value =~ s/^\!//) {
+        return $value ne $check_value ? $level : undef; 
+    } else {
+        return $value eq $check_value ? $level : undef;
+    }    
 }
 
 # =========================================================================================== 
@@ -336,10 +372,22 @@ sub _create_nagios_plugin {
                  help => "Inner path for extracting a single value from a complex attribute or return value (e.g. \"used\")",
                 );
     $np->add_arg(
+                 spec => "string",
+                 help => "Force string comparison for critical and warning checks"
+                );
+    $np->add_arg(
+                 spec => "numeric",
+                 help => "Force numeric comparison for critical and warning checks"
+                );
+    $np->add_arg(
                  spec => "critical|c=s",
                  help => "Critical Threshold for value. " . 
                  "See http://nagiosplug.sourceforge.net/developer-guidelines.html#THRESHOLDFORMAT " .
                  "for the threshold format.",
+                );
+    $np->add_arg(
+                 spec => "warning|w=s",
+                 help => "Warning Threshold for value.",
                 );
     $np->add_arg(
                  spec => "proxy=s",
@@ -352,10 +400,6 @@ sub _create_nagios_plugin {
     $np->add_arg(
                  spec => "password=s",
                  help => "Password for HTTP authentication"
-                );
-    $np->add_arg(
-                 spec => "warning|w=s",
-                 help => "Warning Threshold for value.",
                 );
     $np->add_arg(
                  spec => "name|n=s",

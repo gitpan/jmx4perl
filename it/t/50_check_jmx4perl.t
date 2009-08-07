@@ -15,6 +15,7 @@ my ($ret,$content);
 ($ret,$content) = &exec_check_perl4jmx();
 is($ret,3,"No args --> UNKNOWN");
 
+
 # ====================================================
 # Basic checks
 my %s = (
@@ -90,6 +91,41 @@ ok($content =~ /counter=(\d+)/ && $1 eq "1","Second operation returns 1");
                                        "-c 1 --name counter inc");
 is($ret,2,"Third operation");
 ok($content =~ /counter=(\d+)/ && $1 eq "2","Third operation returns 2");
+
+# ====================================================
+# Non-numerice Attributes return value check
+
+# Boolean values
+$jmx->execute("jmx4perl.it:type=attribute","reset");
+
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute State --critical false");
+is($ret,0,"Boolean: OK");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute State --critical false");
+is($ret,2,"Boolean: CRITICAL");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute State --critical false --warning true");
+is($ret,1,"Boolean: WARNING");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute State --critical false --warning true");
+is($ret,2,"Boolean (as String): CRITICAL");
+
+# String values
+$jmx->execute("jmx4perl.it:type=attribute","reset");
+
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical Started");
+is($ret,2,"String: CRITICAL");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical Started");
+is($ret,0,"String: OK");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical !Started");
+is($ret,0,"String: OK");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical !Started");
+is($ret,2,"String: CRITICAL");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical Stopped --warning qr/art/");
+is($ret,1,"String: WARNING");
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute String --critical qr/^St..p\\wd\$/ --warning qr/art/");
+is($ret,2,"String: CRITICAL");
+
+# Check for a null value
+($ret,$content) = &exec_check_perl4jmx("--mbean jmx4perl.it:type=attribute --attribute Null --critical null");
+is($ret,3,"null: UNKNOWN");
 
 #print "R: $ret, C:\n$content\n";
 
