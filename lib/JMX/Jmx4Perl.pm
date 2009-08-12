@@ -101,7 +101,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.35_2";
+$VERSION = "0.35_3";
 
 my $REGISTRY = {
                 # Agent based
@@ -350,7 +350,7 @@ sub search {
 
     return undef if $response->status eq "404"; # nothing found
     if ($response->is_error) {
-        croak "Error searching for $pattern: ",$response->error_text;
+        die "Error searching for $pattern: ",$response->error_text,Dumper($response);
     }
     return $response->value;    
 }
