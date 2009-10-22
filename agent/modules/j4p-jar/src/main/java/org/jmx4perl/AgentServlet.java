@@ -73,6 +73,8 @@ import java.util.Map;
  */
 public class AgentServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 42L;
+
     // Converter for converting various attribute object types
     // a JSON representation
     private ObjectToJsonConverter objectToJsonConverter;
@@ -85,17 +87,21 @@ public class AgentServlet extends HttpServlet {
     private MBeanServerHandler mBeanServerHandler;
 
     // Map with all request handlers
-    private Map<JmxRequest.Type,RequestHandler> requestHandlerMap;
+    private static final  Map<JmxRequest.Type,RequestHandler> REQUEST_HANDLER_MAP =
+            new HashMap<JmxRequest.Type,RequestHandler>();
 
     // History handler
-    private HistoryStore historyStore;
+    private static HistoryStore historyStore;
 
     // Storage for storing debug information
-    private DebugStore debugStore;
+    private static DebugStore debugStore;
 
     // MBean used for configuration
-    private Config configMBean;
-    private ObjectName configMBeanName;
+    private static Config configMBean;
+    private static ObjectName configMBeanName;
+
+    // Handling access restrictions
+    private Restrictor restrictor;
 
     @Override
     public void init(ServletConfig pConfig) throws ServletException {
@@ -111,6 +117,9 @@ public class AgentServlet extends HttpServlet {
         // Central objects
         stringToObjectConverter = new StringToObjectConverter();
         objectToJsonConverter = new ObjectToJsonConverter(stringToObjectConverter,pConfig);
+
+        // Access restrictor
+        restrictor = RestrictorFactory.buildRestrictor();
 
         registerRequestHandler();
         registerOwnMBeans();
@@ -141,20 +150,24 @@ public class AgentServlet extends HttpServlet {
         int code = 200;
         Throwable throwable = null;
         try {
+            // Check access policy
+            checkClientIPAccess(pReq);
+
             jmxReq = new JmxRequest(pReq.getPathInfo(),pReq.getParameterMap());
+
             boolean debug = isDebug() && !"debugInfo".equals(jmxReq.getOperation());
-            if (debug) {
-                log("URI: " + pReq.getRequestURI());
-                log("Path-Info: " + pReq.getPathInfo());
-                log("Request: " + jmxReq.toString());
-            }
+            if (debug) logRequest(pReq, jmxReq);
 
+            // Call handler and retrieve return value
             Object retValue = callRequestHandler(jmxReq);
-            if (debug) log("Return: " + retValue);
 
+            if (debug) log("Return: " + retValue);
             json = objectToJsonConverter.convertToJson(retValue,jmxReq);
+
+            // Update global history store
             historyStore.updateAndAdd(jmxReq,json);
 
+            // Ok, we did it ...
             json.put("status",200 /* success */);
             if (debug) log("Response: " + json);
         } catch (AttributeNotFoundException exp) {
@@ -184,7 +197,7 @@ public class AgentServlet extends HttpServlet {
             throwable = error;
         } finally {
             if (code != 200) {
-                json = getErrorJSON(code,throwable,jmxReq);
+                json = getErrorJSON(code,throwable);
                 if (isDebug()) {
                     log("Error " + code,throwable);
                 }
@@ -195,10 +208,22 @@ public class AgentServlet extends HttpServlet {
         }
     }
 
+    private void logRequest(HttpServletRequest pReq, JmxRequest pJmxReq) {
+        log("URI: " + pReq.getRequestURI());
+        log("Path-Info: " + pReq.getPathInfo());
+        log("Request: " + pJmxReq.toString());
+    }
+
+    private void checkClientIPAccess(HttpServletRequest pReq) {
+        if (!restrictor.isRemoteAccessAllowed(pReq.getRemoteHost(),pReq.getRemoteAddr())) {
+            throw new SecurityException("No access from client " + pReq.getRemoteAddr() + " allowed");
+        }
+    }
+
     private Object callRequestHandler(JmxRequest pJmxReq)
             throws ReflectionException, InstanceNotFoundException, MBeanException, AttributeNotFoundException {
         JmxRequest.Type type = pJmxReq.getType();
-        RequestHandler handler = requestHandlerMap.get(type);
+        RequestHandler handler = REQUEST_HANDLER_MAP.get(type);
         if (handler == null) {
             throw new UnsupportedOperationException("Unsupported operation '" + pJmxReq.getType() + "'");
         }
@@ -206,7 +231,7 @@ public class AgentServlet extends HttpServlet {
     }
 
 
-    private JSONObject getErrorJSON(int pErrorCode, Throwable pExp, JmxRequest pJmxReq) {
+    private JSONObject getErrorJSON(int pErrorCode, Throwable pExp) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("status",pErrorCode);
         jsonObject.put("error",pExp.toString());
@@ -233,8 +258,6 @@ public class AgentServlet extends HttpServlet {
 
     private void registerRequestHandler() {
 
-        Restrictor restrictor = RestrictorFactory.buildRestrictor();
-
         RequestHandler handlers[] = {
                 new ReadHandler(restrictor),
                 new WriteHandler(restrictor,objectToJsonConverter),
@@ -244,9 +267,8 @@ public class AgentServlet extends HttpServlet {
                 new SearchHandler(restrictor)
         };
 
-        requestHandlerMap = new HashMap<JmxRequest.Type,RequestHandler>();
         for (RequestHandler handler : handlers) {
-            requestHandlerMap.put(handler.getType(),handler);
+            REQUEST_HANDLER_MAP.put(handler.getType(),handler);
         }
     }
 

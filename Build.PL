@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use Module::Build;
+use Module::Build 0.35;
 
 my $class = Module::Build->subclass(
       class => "Module::Build::Custom",
@@ -61,7 +61,7 @@ my $build = $class->new
    dist_name => "jmx4perl",
    dist_version_from => "lib/JMX/Jmx4Perl.pm",
    dist_author => 'Roland Huss (roland@cpan.org)',
-   dist_abstract => 'Easy JMX access to Java Applications',
+   dist_abstract => 'Easy JMX access to Java JEE applications',
    installdirs => 'site',
    script_files => 'scripts',
    license => 'gpl',
@@ -76,9 +76,11 @@ my $build = $class->new
                 "Carp" => 0,
                 "Module::Find" => 0,
                 "Scalar::Util" => 0,
+                "Config::General" => 0,
                },
    recommends => {
-                   "Nagios::Plugin" => "0.27"
+                   "Nagios::Plugin" => "0.27",
+                   "Config::General" => "0"
                   },
    build_requires => {
                       "Module::Build" => "0",

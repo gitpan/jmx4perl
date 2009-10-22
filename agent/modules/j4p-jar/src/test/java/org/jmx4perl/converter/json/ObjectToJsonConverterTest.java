@@ -1,15 +1,15 @@
 package org.jmx4perl.converter.json;
 
-import org.jmx4perl.converter.json.ObjectToJsonConverter;
 import org.jmx4perl.converter.StringToObjectConverter;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.After;
 import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
 import javax.management.AttributeNotFoundException;
-import java.util.Stack;
-import java.util.Map;
 import java.io.File;
+import java.util.Map;
+import java.util.Stack;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -46,7 +46,7 @@ public class ObjectToJsonConverterTest {
 
     @Before
     public void setup() {
-        converter = new ObjectToJsonConverter(new StringToObjectConverter(), pConfig);
+        converter = new ObjectToJsonConverter(new StringToObjectConverter(),null);
         converter.setupContext(0,0,0);
     }
 
@@ -71,17 +71,9 @@ public class ObjectToJsonConverterTest {
         assertTrue("Bean 3 should be resolved",result.get("bean3") instanceof Map);
     }
 
-    public void stackOverflowTest() throws AttributeNotFoundException {
-        File test = new File(".");
-        Map result = (Map) converter.extractObject(test,new Stack<String>(),true);
-        String c = (String) ((Map) result.get("canonicalFile")).get("canonicalFile");
-        assertTrue("Recurence detected",c.contains("Reference"));
-    }
-
-
     @Test
     public void maxDepth() throws AttributeNotFoundException {
-        ObjectToJsonConverter.StackContext ctx = converter.stackContextLocal.get();
+        ObjectToJsonConverter.StackContext ctx = converter.getStackContextLocal().get();
         ctx.setMaxDepth(1);
         Map result = (Map) converter.extractObject(new SelfRefBean1(),new Stack<String>(),true);
         String c = (String) ((Map) result.get("bean2")).get("bean1");

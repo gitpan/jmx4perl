@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -53,6 +54,12 @@ public class PolicyBasedRestrictor implements Restrictor {
     private Map<ObjectName,Set<String>> mBeanReadAttributes;
     private Map<ObjectName, Set<String>> mBeanWriteAttributes;
     private Map<ObjectName, Set<String>> mBeanOperations;
+    private Set<String> allowedHostsSet;
+    private Set<String> allowedSubnetsSet;
+
+    // Simple patterns, could be mor specific
+    private static final Pattern IP_PATTERN = Pattern.compile("^[\\d.]+$");
+    private static final Pattern SUBNET_PATTERN = Pattern.compile("^[\\d.]+/[\\d.]+$");
 
     public PolicyBasedRestrictor(InputStream pInput) {
         Exception exp = null;
@@ -61,6 +68,7 @@ public class PolicyBasedRestrictor implements Restrictor {
                     DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pInput);
             initTypeSet(doc);
             initMBeanSets(doc);
+            initAllowedHosts(doc);
         }
         catch (SAXException e) { exp = e; }
         catch (IOException e) { exp = e; }
@@ -68,7 +76,7 @@ public class PolicyBasedRestrictor implements Restrictor {
         catch (MalformedObjectNameException e) { exp = e; }
         finally {
             if (exp != null) {
-                throw new RuntimeException("Cannot parse policy file",exp);
+                throw new IllegalStateException("Cannot parse policy file",exp);
             }
         }
     }
@@ -90,6 +98,25 @@ public class PolicyBasedRestrictor implements Restrictor {
 
     public boolean isOperationAllowed(ObjectName pName, String pOperation) {
         return lookupMBean(mBeanOperations,pName, pOperation);
+    }
+
+    public boolean isRemoteAccessAllowed(String ... pHostOrAddress) {
+        if (allowedHostsSet == null) {
+            return true;
+        }
+        for (String addr : pHostOrAddress) {
+            if (allowedHostsSet.contains(addr)) {
+                return true;
+            }
+            if (allowedSubnetsSet != null && IP_PATTERN.matcher(addr).matches()) {
+                for (String subnet : allowedSubnetsSet) {
+                    if (IpChecker.matches(subnet,addr)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // ===============================================================================
@@ -138,9 +165,6 @@ public class PolicyBasedRestrictor implements Restrictor {
                 assertNodeName(commandNode,"command");
                 String typeName = commandNode.getTextContent().trim();
                 JmxRequest.Type type = JmxRequest.Type.valueOf(typeName.toUpperCase());
-                if (type == null) {
-                    throw new IllegalStateException("Unknown request type " + typeName);
-                }
                 typeSet.add(type);
             }
         }
@@ -209,6 +233,37 @@ public class PolicyBasedRestrictor implements Restrictor {
         }
     }
 
+    private void initAllowedHosts(Document pDoc) {
+        NodeList nodes = pDoc.getElementsByTagName("remote");
+        if (nodes.getLength() == 0) {
+            // No restrictions found
+            allowedHostsSet = null;
+            return;
+        }
+
+        allowedHostsSet = new HashSet<String>();
+        for (int i = 0;i<nodes.getLength();i++) {
+            Node node = nodes.item(i);
+            NodeList childs = node.getChildNodes();
+            for (int j = 0;j<childs.getLength();j++) {
+                Node hostNode = childs.item(j);
+                if (hostNode.getNodeType() != Node.ELEMENT_NODE) {
+                    continue;
+                }
+                assertNodeName(hostNode,"host");
+                String host = hostNode.getTextContent().trim().toLowerCase();
+                if (SUBNET_PATTERN.matcher(host).matches()) {
+                    if (allowedSubnetsSet == null) {
+                        allowedSubnetsSet = new HashSet<String>();
+                    }
+                    allowedSubnetsSet.add(host);
+                } else {
+                    allowedHostsSet.add(host);
+                }
+            }
+        }
+    }
+
     private void assertNodeName(Node pNode, String ... pExpected) {
         for (String expected : pExpected) {
             if (pNode.getNodeName().equals(expected)) {
@@ -225,6 +280,7 @@ public class PolicyBasedRestrictor implements Restrictor {
         throw new IllegalStateException(
                 "Expected element " + buffer.toString() + " but got " + pNode.getNodeName());
     }
+
 
 
 }

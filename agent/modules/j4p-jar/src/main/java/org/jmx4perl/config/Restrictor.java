@@ -67,4 +67,13 @@ public interface Restrictor {
      * @return true if access is allowed
      */
     boolean isOperationAllowed(ObjectName pName,String pOperation);
+
+    /**
+     * Check whether access from the connected client is allowed. If at least
+     * one of the given parameters matches, then this method returns true.
+     *
+     * @return true is access is allowed
+     * @param pHostOrAddress one or more host or address names
+     */
+    boolean isRemoteAccessAllowed(String ... pHostOrAddress);
 }

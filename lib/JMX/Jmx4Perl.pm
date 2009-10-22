@@ -25,10 +25,10 @@ Advanced:
    
    my $jmx = new JMX::Jmx4Perl(url => "http://localhost:8080/j4p",
                                product => "jboss");
-   my $request = new JMX::Jmx4Perl::Request(type => READ,
-                                            mbean => "java.lang:type=Memory",
-                                            attribute => "HeapMemoryUsage",
-                                            path => "used");
+   my $request = new JMX::Jmx4Perl::Request({type => READ,
+                                             mbean => "java.lang:type=Memory",
+                                             attribute => "HeapMemoryUsage",
+                                             path => "used"});
    my $response = $jmx->request($request);
    print "Memory used: ",$response->value(),"\n";
 
@@ -43,22 +43,22 @@ transparent access to the Java Management Extensions (JMX) from the perl side.
 It uses a traditional request-response paradigma for performing JMX operations
 on a remote Java Virtual machine. 
 
-There a various ways how JMX information can be transfered. For now, a single
-operational mode is supported. It is based on an I<agent>, a small (< 100k) Java
-Servlet, which needs to deployed on a Java application server. It plays the
-role of a proxy, which on one side communicates with the MBeans server in the
-application server and transfers JMX related information via HTPP and JSON to
-the client (i.e. this module). Please refer to L<JMX::Jmx4Perl::Manual> for
-installation instructions howto deploy the agent servlet (which can be found in
-the distribution as F<agent/j4p.war>).
+There a various ways how JMX information can be transfered. Jmx4Perl is based
+on an I<agent>, a small (< 100k) Java Servlet, which needs to deployed on a
+Java application server. It plays the role of a proxy, which on one side
+communicates with the MBeanServer within in the application server and
+transfers JMX related information via HTTP and JSON to the client (i.e. this
+module). Please refer to L<JMX::Jmx4Perl::Manual> for installation instructions
+for how to deploy the agent servlet (which can be found in the distribution as
+F<agent/j4p.war>).
 
-An alternative, and more 'java like' approach, is the usage of JSR 160
+An alternative and more 'java like' approach is the usage of JSR 160
 connectors. However, the default connectors provided by the Java Virtual
-Machine (JVM) since version 1.5 support only propriertary protocols which
+Machine (JVM) since version 1.5 support only proprietary protocols which
 require serialized Java objects to be exchanged. This implies that a JVM needs
-to be started on the client side, adding quite some overhead if used from
-within Perl. Nevertheless, plans are underway to support this operational mode
-as well, which allows for monitoring of Java application which are not running
+to be started on the client side adding quite some overhead if used from
+within Perl. Nevertheless plans are underway to support this operational mode
+as well, which allows for monitoring Java applications which are not running
 in a servlet container.
 
 For further discussion comparing both approaches, please refer to
@@ -72,7 +72,7 @@ management functions:
 
 =item * 
 
-Reading an writing of attributes of an MBean (like memory usage or connected
+Reading and writing of attributes of an MBean (like memory usage or connected
 users) 
 
 =item *
@@ -96,12 +96,13 @@ package JMX::Jmx4Perl;
 
 use Carp;
 use JMX::Jmx4Perl::Request;
+use JMX::Jmx4Perl::Config;
 use strict;
 use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.35";
+$VERSION = "0.36_1";
 
 my $REGISTRY = {
                 # Agent based
@@ -141,12 +142,35 @@ BEGIN {
 }
 
 
-=item $jmx = JMX::Jmx4Perl->new(mode => <access module>, product => <id>, ....)
+=item $jmx = JMX::Jmx4Perl->new(mode => <access module>, ....)
 
 Create a new instance. The call is dispatched to an Jmx4Perl implementation by
 selecting an appropriate mode. For now, the only mode supported is "agent",
 which uses the L<JMX::Jmx4Perl::Agent> backend. Hence, the mode can be
 submitted for now.
+
+Options can be given via key value pairs (or via a hash). Recognized options
+are:
+
+=over
+
+=item server
+
+You can provide a server name which is looked up in a configuration file. The
+configuration file's name can be given via C<config_file> (see below) or, by
+default, C<.j4p> in the users home directory is used.
+
+=item config_file
+
+Path to a configuration file to use
+
+=item config
+
+A L<JMX::Jmx4Perl::Config> object which is used for 
+configuraton. Use this is you already read in the 
+configuration on your own. 
+
+=item product
 
 If you provide a product id via the named parameter C<product> you can given
 B<jmx4perl> a hint which server you are using. By default, this module uses
@@ -154,6 +178,8 @@ autodetection to guess the kind of server you are talking to. You need to
 provide this argument only if you use B<jmx4perl>'s alias feature and if you
 want to speed up things (autodetection can be quite slow since this requires
 several JMX request to detect product specific MBean attributes).
+
+=back
 
 Any other named parameters are interpreted by the backend, please
 refer to its documentation for details (i.e. L<JMX::Jmx4Perl::Agent>)
@@ -163,6 +189,17 @@ refer to its documentation for details (i.e. L<JMX::Jmx4Perl::Agent>)
 sub new {
     my $class = shift;
     my $cfg = ref($_[0]) eq "HASH" ? $_[0] : {  @_ };
+
+    # Merge in config from a configuration file if a server name is given
+    if ($cfg->{server}) {
+        my $config = $cfg->{config} ? 
+          $cfg->{config} : 
+            new JMX::Jmx4Perl::Config($cfg->{config_file});
+        my $server_cfg = $config->get_server_config($cfg->{server});
+        if (defined($server_cfg)) {
+            $cfg = { %$server_cfg, %$cfg };
+        }
+    }
     
     my $mode = delete $cfg->{mode} || &autodiscover_mode();
     my $product = $cfg->{product} ? lc delete $cfg->{product} : undef;
@@ -178,7 +215,7 @@ sub new {
     my $self = { 
                 cfg => $cfg,
                 product => $product
-             };
+               };
     bless $self,(ref($class) || $class);
     $self->init();
     return $self;

@@ -11,7 +11,7 @@
 
   <parent>
     <groupId>org.jmx4perl</groupId>
-    <artifactId>j4p-agent-parent</artifactId>
+    <artifactId>j4p-parent</artifactId>
     <version>1</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
@@ -21,10 +21,11 @@
       <groupId>javaee</groupId>
       <artifactId>javaee-api</artifactId>
       <version>5</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>org.json</groupId>
+      <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
@@ -44,7 +45,7 @@
         <configuration>
           <source>1.5</source>
           <target>1.5</target>
-          </configuration>
+        </configuration>
       </plugin>
     </plugins>
   </build>
