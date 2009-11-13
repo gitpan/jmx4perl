@@ -31,7 +31,8 @@ import java.util.*;
 
 /**
  * Representation of a JMX request which is converted from an GET or POST HTTP
- * Request. A <code>JmxRequest</code> can be obtained only from a {@link org.jmx4perl.JmxRequestFactory}
+ * Request. A <code>JmxRequest</code> can be obtained only from a
+ * {@link org.jmx4perl.JmxRequestFactory}
  *
  * @author roland
  * @since Apr 19, 2009
@@ -80,23 +81,20 @@ public class JmxRequest {
     private int maxCollectionSize = 0;
     private int maxObjects = 0;
 
-
-
-
     /**
      * Create a request with the given type (with no MBean name)
      *
-     * @param pType request's type
+     * @param pType requests type
      */
-    JmxRequest(Type pType) throws MalformedObjectNameException {
-        this(pType,null);
+    JmxRequest(Type pType) {
+        type = pType;
     }
 
     /**
      * Create a request with given type for a certain MBean.
      * Other parameters of the request need to be set explicitely via a setter.
      *
-     * @param pType request's type
+     * @param pType requests type
      * @param pObjectNameS MBean name in string representation
      * @throws MalformedObjectNameException if the name couldnot properly translated
      *         into a JMX {@link javax.management.ObjectName}
