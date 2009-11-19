@@ -192,7 +192,7 @@ class JmxRequestFactory {
                 val.append("/");
             }
             // Special escape at the end indicates that this is the last element in the path
-            if (!element.substring(element.length()-1,1).equals("+")) {
+            if (!element.substring(element.length()-1,element.length()).equals("+")) {
                 if (!pElementStack.isEmpty()) {
                     val.append(decode(pElementStack.pop()));
                 }
