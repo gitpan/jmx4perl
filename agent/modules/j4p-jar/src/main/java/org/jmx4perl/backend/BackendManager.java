@@ -49,7 +49,7 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class BackendManager {
 
-    LocalRequestDispatcher localDispatcher;
+    private LocalRequestDispatcher localDispatcher;
 
     // Converter for converting various attribute object types
     // a JSON representation
@@ -71,7 +71,7 @@ public class BackendManager {
     private LogHandler logHandler;
 
     // List of RequestDispatchers to consult
-    List<RequestDispatcher> requestDispatchers;
+    private List<RequestDispatcher> requestDispatchers;
 
     public BackendManager(ServletConfig pConfig, LogHandler pLogHandler) {
 
@@ -245,7 +245,7 @@ public class BackendManager {
         }
     }
 
-    public void log(String message, Throwable t) {
+    public final void log(String message, Throwable t) {
         logHandler.log(message,t);
         if (debugStore != null) {
             debugStore.log(message, t);

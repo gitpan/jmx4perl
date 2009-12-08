@@ -7,10 +7,13 @@ import javax.management.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.io.IOException;
-import java.util.*;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -50,7 +53,7 @@ public class MBeanServerHandler {
 
     // Whether we are running under JBoss
     private boolean isJBoss = checkForClass("org.jboss.mx.util.MBeanServerLocator");
-    // boolean isWebsphere = checkForClass("com.ibm.websphere.management.AdminServiceFactory");
+    // private boolean isWebsphere = checkForClass("com.ibm.websphere.management.AdminServiceFactory");
 
     public MBeanServerHandler() {
         initMBeanServers();

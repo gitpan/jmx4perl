@@ -49,7 +49,7 @@ public interface RequestDispatcher {
      * @throws ReflectionException
      * @throws MBeanException
      */
-    public Object dispatchRequest(JmxRequest pJmxReq)
+    Object dispatchRequest(JmxRequest pJmxReq)
             throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException, IOException;
 
     /**

@@ -15,7 +15,20 @@
     <module>modules/j4p-war</module>
     <module>modules/j4p-it</module>
     <module>modules/j4p-jsr160</module>
+    <module>modules/j4p-mule</module>
   </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <developers>
     <developer>
@@ -30,7 +43,7 @@
   </developers>
 
   <properties>
-    <applicationVersion>0.50_2</applicationVersion>
+    <applicationVersion>0.50_3</applicationVersion>
   </properties>
   
 </project>
