@@ -1,6 +1,7 @@
-package org.jmx4perl.backend;
+package org.jmx4perl;
 
-import org.jmx4perl.JmxRequest;
+import org.jmx4perl.backend.LocalRequestDispatcher;
+import org.jmx4perl.backend.RequestDispatcher;
 import org.jmx4perl.config.DebugStore;
 import org.jmx4perl.config.Restrictor;
 import org.jmx4perl.config.RestrictorFactory;
@@ -10,12 +11,14 @@ import org.jmx4perl.history.HistoryStore;
 import org.json.simple.JSONObject;
 
 import javax.management.*;
-import javax.servlet.ServletConfig;
 import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import static org.jmx4perl.Config.*;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -73,7 +76,7 @@ public class BackendManager {
     // List of RequestDispatchers to consult
     private List<RequestDispatcher> requestDispatchers;
 
-    public BackendManager(ServletConfig pConfig, LogHandler pLogHandler) {
+    public BackendManager(Map<Config,String> pConfig, LogHandler pLogHandler) {
 
 
         // Central objects
@@ -90,7 +93,7 @@ public class BackendManager {
         localDispatcher = new LocalRequestDispatcher(objectToJsonConverter,
                                                      stringToObjectConverter,
                                                      restrictor);
-        requestDispatchers = createRequestDispatchers(pConfig.getInitParameter("dispatcherClasses"),
+        requestDispatchers = createRequestDispatchers(DISPATCHER_CLASSES.getValue(pConfig),
                                                       objectToJsonConverter,stringToObjectConverter,restrictor);
         requestDispatchers.add(localDispatcher);
 
@@ -149,11 +152,19 @@ public class BackendManager {
     public JSONObject handleRequest(JmxRequest pJmxReq) throws InstanceNotFoundException, AttributeNotFoundException,
             ReflectionException, MBeanException, IOException {
 
+        boolean debug = isDebug() && !"debugInfo".equals(pJmxReq.getOperation());
         Object retValue = null;
         boolean found = false;
         for (RequestDispatcher dispatcher : requestDispatchers) {
             if (dispatcher.canHandle(pJmxReq)) {
+                long time = 0;
+                if (debug) {
+                    time = System.currentTimeMillis();
+                }
                 retValue = dispatcher.dispatchRequest(pJmxReq);
+                if (debug) {
+                    debug("Execution time: " + (System.currentTimeMillis() - time) + " ms");
+                }
                 found = true;
                 break;
             }
@@ -165,36 +176,36 @@ public class BackendManager {
 
         // Update global history store
         historyStore.updateAndAdd(pJmxReq,json);
-        boolean debug = isDebug() && !"debugInfo".equals(pJmxReq.getOperation());
         if (debug) {
-            log("Response: " + json);
+            debug("Response: " + json);
         }
         // Ok, we did it ...
         json.put("status",200 /* success */);
         if (debug) {
-            log("Success");
+            debug("Success");
         }
         return json;
     }
 
-    private void initStores(ServletConfig pConfig) {
+    private void initStores(Map<Config, String> pConfig) {
         int maxEntries;
         try {
-            maxEntries = Integer.parseInt(pConfig.getInitParameter("historyMaxEntries"));
+            maxEntries = Integer.parseInt(HISTORY_MAX_ENTRIES.getValue(pConfig));
         } catch (NumberFormatException exp) {
-            maxEntries = 10;
+            maxEntries = Integer.parseInt(HISTORY_MAX_ENTRIES.getDefaultValue());
         }
 
-        String doDebug = pConfig.getInitParameter("debug");
+        String doDebug = DEBUG.getValue(pConfig);
         boolean debug = false;
         if (doDebug != null && Boolean.valueOf(doDebug)) {
             debug = true;
         }
-        int maxDebugEntries = 100;
+
+        int maxDebugEntries;
         try {
-            maxEntries = Integer.parseInt(pConfig.getInitParameter("debugMaxEntries"));
+            maxDebugEntries = Integer.parseInt(DEBUG_MAX_ENTRIES.getValue(pConfig));
         } catch (NumberFormatException exp) {
-            maxDebugEntries = 100;
+            maxDebugEntries = Integer.parseInt(DEBUG_MAX_ENTRIES.getDefaultValue());
         }
 
         historyStore = new HistoryStore(maxEntries);
@@ -205,13 +216,13 @@ public class BackendManager {
         try {
             configMBeanName = localDispatcher.registerConfigMBean(historyStore,debugStore);
         } catch (NotCompliantMBeanException e) {
-            log("Error registering config MBean: " + e,e);
+            error("Error registering config MBean: " + e,e);
         } catch (MBeanRegistrationException e) {
-            log("Cannot register MBean: " + e,e);
+            error("Cannot register MBean: " + e,e);
         } catch (MalformedObjectNameException e) {
-            log("Invalid name for config MBean: " + e,e);
+            error("Invalid name for config MBean: " + e,e);
         } catch (InstanceAlreadyExistsException e) {
-            log("Config MBean already exists: " + e,e);
+            error("Config MBean already exists: " + e,e);
         }
     }
 
@@ -222,14 +233,14 @@ public class BackendManager {
                 localDispatcher.unregisterLocalMBean(configMBeanName);
             } catch (MalformedObjectNameException e) {
                 // wont happen
-                log("Invalid name for config MBean: " + e,e);
+                error("Invalid name for config MBean: " + e,e);
             } catch (InstanceNotFoundException e) {
-                log("No Mbean registered with name " + configMBeanName + ": " + e,e);
+                error("No Mbean registered with name " + configMBeanName + ": " + e,e);
             } catch (MBeanRegistrationException e) {
-                log("Cannot unregister MBean: " + e,e);
+                error("Cannot unregister MBean: " + e,e);
             }
         } else {
-            log("Internal Problem: No ConfigMBean name !");
+            error("Internal Problem: No ConfigMBean name !",null);
         }
     }
 
@@ -238,15 +249,22 @@ public class BackendManager {
         return restrictor.isRemoteAccessAllowed(pRemoteHost,pRemoteAddr);
     }
 
-    public void log(String msg) {
-        logHandler.log(msg);
+    public void info(String msg) {
+        logHandler.info(msg);
         if (debugStore != null) {
             debugStore.log(msg);
         }
     }
 
-    public final void log(String message, Throwable t) {
-        logHandler.log(message,t);
+    public void debug(String msg) {
+        logHandler.debug(msg);
+        if (debugStore != null) {
+            debugStore.log(msg);
+        }
+    }
+
+    public final void error(String message, Throwable t) {
+        logHandler.error(message,t);
         if (debugStore != null) {
             debugStore.log(message, t);
         }
@@ -255,4 +273,15 @@ public class BackendManager {
     public boolean isDebug() {
         return debugStore != null && debugStore.isDebug();
     }
+
+    /**
+     * Set the log handler used for log handling
+     *
+     * @param pLogHandler log handler to use
+     */
+    public void setLogHandler(LogHandler pLogHandler) {
+        logHandler = pLogHandler;
+    }
+
+
 }
