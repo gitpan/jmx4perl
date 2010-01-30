@@ -102,7 +102,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.55_2";
+$VERSION = "0.60_1";
 
 my $REGISTRY = {
                 # Agent based
@@ -257,6 +257,9 @@ value, this argument is taken as alias (without any path). If you want to use
 aliases together with a path, you need to use the second form with a hash ref
 for providing the (named) arguments. 
 
+If no attribute name is provided the value of E<all> attributes of this MBean 
+is returned.
+
 This method returns the value as it is returned from the server. It will throw
 an exception (die), if an error occurs on the server side, like when the name
 couldn't be found.
@@ -272,7 +275,7 @@ sub get_attribute {
     if (ref($object) eq "CODE") {       
         $response = $self->delegate_to_handler($object);                
     } else {
-        croak "No attribute provided for object $object" unless $attribute;        
+        #croak "No attribute provided for object $object" unless $attribute;        
         my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
         $response = $self->request($request);
     }
@@ -410,8 +413,17 @@ exported by L<JMX::Jmx4Perl::Alias>, otherwise it is guessed, whether the first
 string value is an alias or a MBean name. To be sure, use the variant with an
 hashref as argument.
 
-This method will croak, if something fails during execution of this operation
-or when the MBean/Operation combination could not be found.
+If you are calling an overloaded JMX operation (i.e. operations with the same
+name but a different argument signature), the operation name must include the
+signature as well. This is be done by adding the parameter types comma
+separated within parentheses:
+
+  ...
+  operation => "overloadedMethod(java.lang.String,int)"
+  ...
+
+This method will croak, if something fails during execution of this
+operation or when the MBean/Operation combination could not be found.
 
 The return value of this method is the return value of the JMX operation.
 
@@ -861,8 +873,14 @@ sub _format_attribute {
 sub _format_operation {
     my ($ret,$name,$op,$level) = @_;
     $ret .= &_get_space($level);
-    my $method = &_format_method($name,$op->{args},$op->{ret});
-    $ret .= sprintf("%-35s \"%s\"\n",$method,$op->{desc});
+    my $list = ref($op) eq "HASH" ? [ $op ] : $op;
+    my $first = 1;
+    for my $o (@$list) {
+        my $method = &_format_method($name,$o->{args},$o->{ret});
+        $ret .= &_get_space($level) unless $first;
+        $ret .= sprintf("%-35s \"%s\"\n",$method,$o->{desc});
+        $first = 0;
+    }
     return $ret;
 }
 

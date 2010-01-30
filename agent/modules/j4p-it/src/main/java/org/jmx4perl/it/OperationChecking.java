@@ -9,15 +9,9 @@ import javax.management.MalformedObjectNameException;
  * @author roland
  * @since Jun 30, 2009
  */
-public class OperationChecking implements OperationCheckingMBean, MBeanRegistration {
-
-    private String name;
+public class OperationChecking implements OperationCheckingMBean {
 
     private int counter = 0;
-
-    public OperationChecking(String pName) {
-        name = pName;
-    }
 
     public void reset() {
         counter = 0;
@@ -31,16 +25,11 @@ public class OperationChecking implements OperationCheckingMBean, MBeanRegistrat
         }
     }
 
-    public ObjectName preRegister(MBeanServer pMBeanServer, ObjectName pObjectName) throws MalformedObjectNameException {
-        return new ObjectName(name);
+    public int overloadedMethod(String arg) {
+        return 1;
     }
 
-    public void postRegister(Boolean pBoolean) {
-    }
-
-    public void preDeregister()  {
-    }
-
-    public void postDeregister() {
+    public int overloadedMethod(String arg, int arg2) {
+        return 2;
     }
 }
