@@ -284,7 +284,8 @@ sub _validate_response {
           ( 
            status => $http_resp->code,
            content => $json_error ? $http_resp->content : $json_resp,
-           error => $json_error ? $self->_prepare_http_error_text($http_resp) : $json_resp->{error},
+           error => $json_error ? $self->_prepare_http_error_text($http_resp) : 
+           ref($json_resp) eq "ARRAY" ? join "\n",  map { $_->{error} } @$json_resp : $json_resp->{error},
            stacktrace => ref($json_resp) eq "ARRAY" ? $self->_extract_stacktraces($json_resp) : $json_resp->{stacktrace}
           );        
     }
@@ -316,12 +317,17 @@ sub request_url {
         $req .= $self->_extract_path($request->get("path"));
     } elsif ($type eq EXEC) {
         $req .= "/" . $self->_escape($request->get("operation"));
-        $req .= "/" . $self->_escape($self->_null_escape($_)) for @{$request->get("arguments")};
+        for my $arg (@{$request->get("arguments")}) {
+            # Array refs are sticked together via ","
+            my $a = ref($arg) eq "ARRAY" ? join ",",@{$arg} : $arg;
+            $req .= "/" . $self->_escape($self->_null_escape($a));
+        }
     } elsif ($type eq SEARCH) {
         # Nothing further to append.
     }
     # Squeeze multiple slashes
     $req =~ s|/{2,}|/|g;
+    #print "R: $req\n";
     my @params;
     for my $k (keys %PARAM_MAPPING) {
         push @params, $PARAM_MAPPING{$k} . "=" . $request->get($k)
@@ -351,7 +357,9 @@ sub _escape {
     my $input = shift;
     my $opts = { @_ };
     $input =~ s|(/+)|"/" . ('-' x length($1)) . "/"|eg;
-    $input =~ s|-/$|+/|; # The last slash needs a special escape
+    $input =~ s|-/$|+/|; # The last slash needs a special escape    
+    $input =~ s|^/-|/^|; # as well as the first slash
+
     return URI::Escape::uri_escape_utf8($input,"^A-Za-z0-9\-_.!~*'()/");   # Added "/" to
                                                               # default
                                                               # set. See L<URI>
