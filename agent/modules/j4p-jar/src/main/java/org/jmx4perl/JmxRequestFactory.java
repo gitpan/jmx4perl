@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * @author roland
  * @since Oct 29, 2009
  */
-final class JmxRequestFactory {
+final public class JmxRequestFactory {
 
     // Pattern for detecting escaped slashes in URL encoded requests
     private static final Pattern SLASH_ESCAPE_PATTERN = Pattern.compile("^\\^?-*\\+?$");
@@ -71,7 +71,7 @@ final class JmxRequestFactory {
      * @param pParameterMap HTTP Query parameters
      * @return a newly created {@link org.jmx4perl.JmxRequest}
      */
-    static JmxRequest createRequestFromUrl(String pPathInfo, Map pParameterMap) {
+    static public JmxRequest createRequestFromUrl(String pPathInfo, Map<String,String[]> pParameterMap) {
         JmxRequest request = null;
         try {
             if (pPathInfo != null && pPathInfo.length() > 0) {
@@ -113,7 +113,7 @@ final class JmxRequestFactory {
      * @param content JSON representation of a {@link org.jmx4perl.JmxRequest}
      * @return list with one or more requests
      */
-    static List<JmxRequest> createRequestsFromInputStream(Reader content) throws MalformedObjectNameException, IOException {
+    static List<JmxRequest> createRequestsFromInputReader(Reader content) throws MalformedObjectNameException, IOException {
         try {
             JSONParser parser = new JSONParser();
             Object json = parser.parse(content);
@@ -238,16 +238,13 @@ final class JmxRequestFactory {
         return p;
     }
 
-    private static void extractParameters(JmxRequest pRequest,Map pParameterMap) {
+    private static void extractParameters(JmxRequest pRequest,Map<String,String[]> pParameterMap) {
         if (pParameterMap != null) {
-            if (pParameterMap.get("maxDepth") != null) {
-                pRequest.setMaxDepth(Integer.parseInt( ((String []) pParameterMap.get("maxDepth"))[0]));
-            }
-            if (pParameterMap.get("maxCollectionSize") != null) {
-                pRequest.setMaxCollectionSize(Integer.parseInt(((String []) pParameterMap.get("maxCollectionSize"))[0]));
-            }
-            if (pParameterMap.get("maxObjects") != null) {
-                pRequest.setMaxObjects(Integer.parseInt(((String []) pParameterMap.get("maxObjects"))[0]));
+            for (Map.Entry<String,String[]> entry : pParameterMap.entrySet()) {
+                String values[] = entry.getValue();
+                if (values != null && values.length > 0) {
+                    pRequest.setProcessingConfig(entry.getKey(),values[0]);
+                }
             }
         }
     }

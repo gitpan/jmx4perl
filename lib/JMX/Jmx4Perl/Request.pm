@@ -83,12 +83,12 @@ So, to fetch the C<"used"> value only, specify C<used> as path within the
 request. You can access deeper nested values by building up a path with "/" as
 separator. This looks a bit like a simplified form of XPath.
 
-=item max_depth, max_objects, max_list_size
+=item maxDepth, maxObjects, maxCollectionSize
 
 With these number you can restrict the size of the JSON structure
-returned. C<max_depth> gives the maximum nesting level of the JSON
-object,C<max_objects> returns the maximum number of objects to be returned in
-total and C<max_list_size> restrict the number of all arrays and collections
+returned. C<maxDepth> gives the maximum nesting level of the JSON
+object,C<maxObjects> returns the maximum number of objects to be returned in
+total and C<maxCollectionSize> restrict the number of all arrays and collections
 (maps, lists) in the answer. Note, that you should use this restrictions if you
 are doing massive bulk operations.
 
@@ -158,9 +158,15 @@ parameter and a hashref containing named parameter for the request parameters
 (for the names, see above). Finally you can specify the arguments completely as
 a hashref, using 'type' for the entry specifying the request type.
 
-For the options C<max_depth>, C<max_objects> and C<max_list_size>, you can mix
+For the options C<maxDepth>, C<maxObjects> and C<maxCollectionSize>, you can mix
 them in into the hashref if using the hashed argument format. For the first
 format, these options are given as a final hashref.
+
+The option C<method> can be used to suggest a HTTP request method to use. By
+default, the agent decides automatically which HTTP method to use depending on
+the number of requests and whether an extended format should be used (which is
+only possible with an HTTP POST request). The value of this option can be
+either C<post> or C<get>, dependening on your preference. 
 
 If the request should be proxied through this request, a target configuration
 needs to be given as optional parameter. The target configuration consists of a
@@ -184,6 +190,9 @@ named parameters are:
 
  Order    : $mbean, $attribute, $path
  Mandatory: $mbean, $attribute
+
+Note that C<$attribute> can be either a single name or a reference to a list
+of attribute names. 
 
 =item C<WRITE> 
 
@@ -213,7 +222,6 @@ sub new {
     my $class = shift;
     my $type = shift;
     my $self;
-
     # Hash as argument
     if (ref($type) eq "HASH") {
         $self = $type;
@@ -233,12 +241,15 @@ sub new {
             if (ref($opts) eq "HASH") {
                 pop @_;
                 map { $self->{$_} = $opts->{$_} } keys %$opts;
-            } else {
-            }
+            } 
             if ($type eq READ) {
                 $self->{mbean} = shift;
                 $self->{attribute} = shift;
                 $self->{path} = shift;
+                # Use post for complex read requests
+                if (ref($self->{attribute}) eq "ARRAY" || $self->{mbean} =~ /\*/) {
+                    $self->{method} = "POST";
+                }
             } elsif ($type eq WRITE) {
                 $self->{mbean} = shift;
                 $self->{attribute} = shift;
@@ -296,9 +307,14 @@ sub TO_JSON {
     my $ret = {
                type => $self->{type} ? uc($self->{type}) : undef,
               };
-    for my $k (qw(mbean attribute path value operation arguments max_depth max_objects max_list_size target)) {
-        $ret->{$k} = $self->{$k} if $self->{$k};
+    for my $k (qw(mbean attribute path value operation arguments target)) {
+        $ret->{$k} = $self->{$k} if defined($self->{$k});
     }
+    my %config;
+    for my $k (qw(maxDepth maxObjects maxCollectionSize ignoreErrors)) {
+        $config{$k} = $self->{$k} if defined($self->{$k});
+    }
+    $ret->{config} = \%config if keys(%config);
     return $ret;
 }
 
