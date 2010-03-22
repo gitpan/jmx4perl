@@ -102,7 +102,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.65_2";
+$VERSION = "0.65_3";
 
 my $REGISTRY = {
                 # Agent based
@@ -544,6 +544,29 @@ sub execute {
     return $response->value;
 }
 
+
+=item $resp = $jmx->version()
+
+This method return the version of the agent as well as the j4p protocol
+version. The agent's version is a regular program version and corresponds to 
+jmx4perl's version from which the agent has been taken. The protocol version
+is an integer number which indicates the version of the protocol specification.
+
+The return value is a hash with the keys C<agent> and C<protocol>
+
+=cut
+
+sub version {
+    my $self = shift;
+    
+    my $request = new JMX::Jmx4Perl::Request(VERSION);
+    my $response = $self->request($request);
+
+    if ($response->is_error) {
+        die "Error getting the agent's version: ",$response->error_text;
+    }
+    return $response->value;    
+}
 
 =item $resp = $jmx->request($request)
 
