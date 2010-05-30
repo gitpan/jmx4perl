@@ -84,7 +84,7 @@ public class ReadHandler extends JsonRequestHandler {
             }
             return ret;
         } else {
-            return fetchAttributes(server,oName,request.getAttributeNames(),faultHandler,false);
+            return fetchAttributes(server,oName,request.getAttributeNames(),faultHandler,!request.isSingleAttribute());
         }
     }
 
@@ -178,5 +178,12 @@ public class ReadHandler extends JsonRequestHandler {
             throw new SecurityException("Reading attribute " + attribute +
                     " is forbidden for MBean " + mBeanName.getCanonicalName());
         }
+    }
+
+    @Override
+    // We override it here with a noop since we do a more fine grained
+    // check during processin of the request.
+    protected void checkForType(JmxRequest pRequest) {
+
     }
 }
