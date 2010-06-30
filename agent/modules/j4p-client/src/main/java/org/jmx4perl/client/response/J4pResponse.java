@@ -13,7 +13,7 @@ import org.json.simple.JSONObject;
  * @author roland
  * @since Apr 24, 2010
  */
-abstract public class J4pResponse<T extends J4pRequest> {
+public abstract class J4pResponse<T extends J4pRequest> {
 
     // JSON representation of the returned response
     private JSONObject jsonResponse;
@@ -54,7 +54,7 @@ abstract public class J4pResponse<T extends J4pRequest> {
      * @return request date
      */
     public Date getRequestDate() {
-        return requestDate;
+        return (Date) requestDate.clone();
     }
 
     /**
@@ -64,42 +64,5 @@ abstract public class J4pResponse<T extends J4pRequest> {
      */
     public <V> V getValue() {
         return (V) jsonResponse.get("value");
-    }
-
-    /**
-     * Get status of this response (similar in meaning of HTTP stati)
-     *
-     * @return status
-     */
-    public long getStatus() {
-        return (Long) jsonResponse.get("status");
-    }
-
-    /**
-     * Whether the request resulted in an error
-     *
-     * @return whether this response represents an error
-     */
-    public boolean isError() {
-        return getStatus() != 200;
-    }
-
-    /**
-     * Get the error string when {@link #isError()} is true. Return <code>null</code>
-     * if no error has occured
-     *
-     * @return error text
-     */
-    public String getError() {
-        return (String) jsonResponse.get("error");
-    }
-
-    /**
-     * Get the server side stacktrace as string when {@link #isError()} is true. Return <code>null</code>
-     * if no error has occured.
-     * @return server side stacktrace as string
-     */
-    public String getStackTrace() {
-        return (String) jsonResponse.get("stacktrace");
     }
 }

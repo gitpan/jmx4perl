@@ -16,13 +16,14 @@ import org.mortbay.jetty.servlet.ServletHolder;
 abstract public class AbstractJ4pIntegrationTest {
 
     private static Server jettyServer;
+
     protected static ItSetup itSetup;
 
     private static final int JETTY_DEFAULT_PORT = 8234;
-    private static final String SEVER_BASE_URL = "http://localhost:" + JETTY_DEFAULT_PORT;
+    private static final String SERVER_BASE_URL = "http://localhost:" + JETTY_DEFAULT_PORT;
     private static final String J4P_CONTEXT = "/j4p";
 
-    protected static final String J4P_DEFAULT_URL = SEVER_BASE_URL + J4P_CONTEXT;
+    protected static final String J4P_DEFAULT_URL = SERVER_BASE_URL + J4P_CONTEXT;
 
     static String j4pUrl;
 
@@ -36,17 +37,17 @@ abstract public class AbstractJ4pIntegrationTest {
     @BeforeClass
 	public static void start() throws Exception {
         String testUrl = System.getProperty("j4p.url");
+        itSetup = new ItSetup();
         if (testUrl == null) {
             jettyServer = new Server(JETTY_DEFAULT_PORT);
             Context jettyContext = new Context(jettyServer, "/");
             jettyContext.addServlet(new ServletHolder(new AgentServlet()), J4P_CONTEXT + "/*");
             jettyServer.start();
             j4pUrl = J4P_DEFAULT_URL;
-            itSetup = new ItSetup();
+            // Start the integration MBeans
             itSetup.start();
         } else {
             j4pUrl = testUrl;
-            itSetup = null;
         }
 	}
 

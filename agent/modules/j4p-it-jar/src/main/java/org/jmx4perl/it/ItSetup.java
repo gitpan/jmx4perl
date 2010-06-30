@@ -53,7 +53,7 @@ public class ItSetup {
 //            "äöüßÄÖÜ"
 
     };
-    List<String> strangeNames = new ArrayList<String>();
+    private List<String> strangeNames = new ArrayList<String>();
 
     private String[] escapedNamesShort = {
 //            "name*with?strange=\"chars"
@@ -124,7 +124,7 @@ public class ItSetup {
         }
     }
 
-    private String getAttributeMBean() {
+    public String getAttributeMBean() {
         return domain + ":type=attribute";
     }
 

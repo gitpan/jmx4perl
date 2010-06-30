@@ -1,17 +1,13 @@
 package org.jmx4perl;
 
-import org.jmx4perl.JmxRequest.Type;
-import org.json.simple.JSONAware;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
-import javax.management.MalformedObjectNameException;
-import java.io.IOException;
-import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.management.MalformedObjectNameException;
+
+import org.jmx4perl.JmxRequest.Type;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -42,7 +38,7 @@ import java.util.regex.Pattern;
  * @author roland
  * @since Oct 29, 2009
  */
-final public class JmxRequestFactory {
+public final class JmxRequestFactory {
 
     // Pattern for detecting escaped slashes in URL encoded requests
     private static final Pattern SLASH_ESCAPE_PATTERN = Pattern.compile("^\\^?-*\\+?$");
@@ -95,44 +91,29 @@ final public class JmxRequestFactory {
      * @param pParameterMap HTTP Query parameters
      * @return a newly created {@link org.jmx4perl.JmxRequest}
      */
-    static public JmxRequest createRequestFromUrl(String pPathInfo, Map<String,String[]> pParameterMap) {
+    public static JmxRequest createRequestFromUrl(String pPathInfo, Map<String,String[]> pParameterMap) {
         JmxRequest request = null;
         try {
-            String pathInfo = pPathInfo;
+            String pathInfo = extractPathInfo(pPathInfo, pParameterMap);
 
-            // If no pathinfo is given directly, we look for a query parameter named 'p'.
-            // This variant is helpful, if there are problems with the server mangling
-            // up the pathinfo (e.g. for security concerns, often '/','\',';' and other are not
-            // allowed in encoded form within the pathinfo)
-            if (pPathInfo == null || pPathInfo.length() == 0 || pathInfo.matches("^/+$")) {
-                String[] vals = pParameterMap.get("p");
-                if (vals != null && vals.length > 0) {
-                    pathInfo = vals[0];
-                }
+            // Get all path elements as a reverse stack
+            Stack<String> elements = extractElementsFromPath(pathInfo);
+            Type type = extractType(elements.pop());
+
+            Processor processor = PROCESSOR_MAP.get(type);
+            if (processor == null) {
+                throw new UnsupportedOperationException("Type " + type + " is not supported (yet)");
             }
 
-            if (pathInfo != null && pathInfo.length() > 0) {
-                // Get all path elements as a reverse stack
-                Stack<String> elements = extractElementsFromPath(pathInfo);
-                Type type = extractType(elements.pop());
+            // Parse request
+            request = processor.process(elements);
 
-                Processor processor = PROCESSOR_MAP.get(type);
-                if (processor == null) {
-                    throw new UnsupportedOperationException("Type " + type + " is not supported (yet)");
-                }
+            // Extract all additional args from the remaining path info
+            request.setExtraArgs(prepareExtraArgs(elements));
 
-                // Parse request
-                request = processor.process(elements);
-
-                // Extract all additional args from the remaining path info
-                request.setExtraArgs(prepareExtraArgs(elements));
-
-                // Setup JSON representation
-                extractParameters(request,pParameterMap);
-                return request;
-            } else {
-                throw new IllegalArgumentException("No pathinfo given and no query parameter 'p'");
-            }
+            // Setup JSON representation
+            extractParameters(request,pParameterMap);
+            return request;
         } catch (NoSuchElementException exp) {
             throw new IllegalArgumentException("Invalid path info " + pPathInfo,exp);
         } catch (MalformedObjectNameException e) {
@@ -141,6 +122,27 @@ final public class JmxRequestFactory {
             throw new IllegalStateException("Internal: Illegal encoding for URL conversion: " + e,e);
         } catch (EmptyStackException exp) {
             throw new IllegalArgumentException("Invalid arguments in pathinfo " + pPathInfo + (request != null ? " for command " + request.getType() : ""),exp);
+        }
+    }
+
+    // Extract path info either from the 'real' URL path, or from an request parameter
+    private static String extractPathInfo(String pPathInfo, Map<String, String[]> pParameterMap) {
+        String pathInfo = pPathInfo;
+
+        // If no pathinfo is given directly, we look for a query parameter named 'p'.
+        // This variant is helpful, if there are problems with the server mangling
+        // up the pathinfo (e.g. for security concerns, often '/','\',';' and other are not
+        // allowed in encoded form within the pathinfo)
+        if (pPathInfo == null || pPathInfo.length() == 0 || pathInfo.matches("^/+$")) {
+            String[] vals = pParameterMap.get("p");
+            if (vals != null && vals.length > 0) {
+                pathInfo = vals[0];
+            }
+        }
+        if (pathInfo != null && pathInfo.length() > 0) {
+            return pathInfo;
+        } else {
+            throw new IllegalArgumentException("No pathinfo given and no query parameter 'p'");
         }
     }
 
@@ -204,7 +206,6 @@ final public class JmxRequestFactory {
         return ret;
     }
 
-
     private static void extractElements(Stack<String> ret, Stack<String> pElementStack,StringBuffer previousBuffer)
             throws UnsupportedEncodingException {
         if (pElementStack.isEmpty()) {
@@ -231,27 +232,31 @@ final public class JmxRequestFactory {
                 val = previousBuffer;
             }
             // Append appropriate nr of slashes
-            for (int j=0;j<element.length();j++) {
-                val.append("/");
-            }
+            expandSlashes(val, element);
+
             // Special escape at the end indicates that this is the last element in the path
             if (!element.substring(element.length()-1,element.length()).equals("+")) {
                 if (!pElementStack.isEmpty()) {
                     val.append(decode(pElementStack.pop()));
                 }
                 extractElements(ret,pElementStack,val);
-                return;
             } else {
                 ret.push(decode(val.toString()));
                 extractElements(ret,pElementStack,null);
-                return;
             }
+            return;
         }
         if (previousBuffer != null) {
             ret.push(decode(previousBuffer.toString()));
         }
         ret.push(decode(element));
         extractElements(ret,pElementStack,null);
+    }
+
+    private static void expandSlashes(StringBuffer pVal, String pElement) {
+        for (int j=0;j< pElement.length();j++) {
+            pVal.append("/");
+        }
     }
 
     private static String decode(String s) {

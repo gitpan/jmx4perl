@@ -83,7 +83,7 @@ public class JmxRequest {
     private Map<Config, String> processingConfig = new HashMap<Config, String>();
 
     // A value fault handler for dealing with exception when extracting values
-    ValueFaultHandler valueFaultHandler = NOOP_VALUE_FAULT_HANDLER;
+    private ValueFaultHandler valueFaultHandler = NOOP_VALUE_FAULT_HANDLER;
 
     /**
      * Create a request with the given type (with no MBean name)
@@ -123,7 +123,7 @@ public class JmxRequest {
         String s = (String) pMap.get("mbean");
         if (s != null) {
             objectNameS = s;
-            objectName = new ObjectName(s);
+            objectName = new ObjectName(objectNameS);
         }
         Object attrVal = pMap.get("attribute");
         if (attrVal != null) {
@@ -148,7 +148,19 @@ public class JmxRequest {
         if (l != null && l.size() > 0) {
             extraArgs = new ArrayList<String>();
             for (Object val : l) {
-                extraArgs.add(val != null ? val.toString() : null);
+                if (val instanceof List) {
+                    List valList = (List) val;
+                    StringBuilder arrayArg = new StringBuilder();
+                    for (int i = 0; i < valList.size(); i++) {
+                        arrayArg.append(valList.get(i) != null ? valList.get(i).toString() : "[null]");
+                        if (i < valList.size() - 1) {
+                            arrayArg.append(",");
+                        }
+                    }
+                    extraArgs.add(arrayArg.toString());
+                } else {
+                    extraArgs.add(val != null ? val.toString() : null);
+                }
             }
         }
         s = (String) pMap.get("value");
@@ -167,8 +179,8 @@ public class JmxRequest {
 
         Map<String,?> config = (Map<String,?>) pMap.get("config");
         if (config != null) {
-            for (String key : config.keySet()) {
-                setProcessingConfig(key,config.get(key));
+            for (Map.Entry<String,?> entry : config.entrySet()) {
+                setProcessingConfig(entry.getKey(),entry.getValue());
             }
         }
 
@@ -256,7 +268,7 @@ public class JmxRequest {
      * @param pConfig configuration key to fetch
      * @return string value or <code>null</code> if not set
      */
-    public String getProcessingConfig(Config pConfig) {
+    public final String getProcessingConfig(Config pConfig) {
         return processingConfig.get(pConfig);
     }
 
@@ -268,15 +280,15 @@ public class JmxRequest {
      * @return integer value of configuration or null if not set.
      */
     public Integer getProcessingConfigAsInt(Config pConfig) {
-        String value = processingConfig.get(pConfig);
-        if (value != null) {
-            return Integer.parseInt(value);
+        String intValueS = processingConfig.get(pConfig);
+        if (intValueS != null) {
+            return Integer.parseInt(intValueS);
         } else {
             return null;
         }
     }
 
-    void setProcessingConfig(String pKey, Object pValue) {
+    final void setProcessingConfig(String pKey, Object pValue) {
         Config cKey = Config.getByKey(pKey);
         if (cKey != null) {
             processingConfig.put(cKey,pValue != null ? pValue.toString() : null);
@@ -485,14 +497,14 @@ public class JmxRequest {
         <T extends Throwable> Object handleException(T exception) throws T;
     }
 
-    final private static ValueFaultHandler NOOP_VALUE_FAULT_HANDLER = new ValueFaultHandler() {
+    private static final ValueFaultHandler NOOP_VALUE_FAULT_HANDLER = new ValueFaultHandler() {
         public <T extends Throwable> Object handleException(T exception) throws T {
             // Dont handle exception on our own, we rethrow it
             throw exception;
         }
     };
 
-    final private static ValueFaultHandler IGNORE_VALUE_FAULT_HANDLER = new ValueFaultHandler() {
+    private static final  ValueFaultHandler IGNORE_VALUE_FAULT_HANDLER = new ValueFaultHandler() {
         public <T extends Throwable> Object handleException(T exception) throws T {
             return "ERROR: " + exception.getMessage() + " (" + exception.getClass() + ")";
         }

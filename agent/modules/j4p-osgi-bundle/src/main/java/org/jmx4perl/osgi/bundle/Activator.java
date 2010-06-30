@@ -4,8 +4,6 @@ import org.jmx4perl.osgi.J4pActivator;
 import org.ops4j.pax.web.service.jetty.internal.CompositeActivator;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.log.LogService;
-import org.osgi.util.tracker.ServiceTracker;
 
 /*
  * osgish - An OSGi Shell
@@ -54,11 +52,13 @@ public class Activator implements BundleActivator {
         paxWebActivator = new CompositeActivator();
     }
 
+    @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public void start(BundleContext pContext) throws Exception {
         paxWebActivator.start(pContext);
         j4pActivator.start(pContext);
     }
 
+    @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public void stop(BundleContext pContext) throws Exception {
         j4pActivator.stop(pContext);
         paxWebActivator.stop(pContext);

@@ -102,40 +102,44 @@ public class BackendManager {
         registerOwnMBeans();
     }
 
+    // Construct configured dispatchers by reflection. Returns always
+    // a list, an empty one if no request dispatcher should be created
     private List<RequestDispatcher> createRequestDispatchers(String pClasses,
                                                              ObjectToJsonConverter pObjectToJsonConverter,
                                                              StringToObjectConverter pStringToObjectConverter,
                                                              Restrictor pRestrictor) {
         List<RequestDispatcher> ret = new ArrayList<RequestDispatcher>();
-        if (pClasses == null || pClasses.length() == 0) {
-            return ret;
-        }
-        String[] names = pClasses.split("\\s*,\\s*");
-        for (String name : names) {
-            try {
-                Class clazz = this.getClass().getClassLoader().loadClass(name);
-                Constructor constructor = clazz.getConstructor(ObjectToJsonConverter.class,
-                                                               StringToObjectConverter.class,
-                                                               Restrictor.class);
-                RequestDispatcher dispatcher =
-                        (RequestDispatcher)
-                                constructor.newInstance(pObjectToJsonConverter,
-                                                        pStringToObjectConverter,
-                                                        pRestrictor);
-                ret.add(dispatcher);
-            } catch (ClassNotFoundException e) {
-                throw new IllegalArgumentException("Couldn't load class " + name + ": " + e,e);
-            } catch (NoSuchMethodException e) {
-                throw new IllegalArgumentException("Class " + name + " has invalid constructor: " + e,e);
-            } catch (IllegalAccessException e) {
-                throw new IllegalArgumentException("Constructor of " + name + " couldn't be accessed: " + e,e);
-            } catch (InvocationTargetException e) {
-                throw new IllegalArgumentException(e);
-            } catch (InstantiationException e) {
-                throw new IllegalArgumentException(name + " couldn't be instantiated: " + e,e);
+        if (pClasses != null && pClasses.length() > 0) {
+            String[] names = pClasses.split("\\s*,\\s*");
+            for (String name : names) {
+                ret.add(createDispatcher(name, pObjectToJsonConverter, pStringToObjectConverter, pRestrictor));
             }
         }
         return ret;
+    }
+
+    // Create a single dispatcher
+    private RequestDispatcher createDispatcher(String pDispatcherClass, ObjectToJsonConverter pObjectToJsonConverter, StringToObjectConverter pStringToObjectConverter, Restrictor pRestrictor) {
+        try {
+            Class clazz = this.getClass().getClassLoader().loadClass(pDispatcherClass);
+            Constructor constructor = clazz.getConstructor(ObjectToJsonConverter.class,
+                                                           StringToObjectConverter.class,
+                                                           Restrictor.class);
+            return (RequestDispatcher)
+                            constructor.newInstance(pObjectToJsonConverter,
+                                                    pStringToObjectConverter,
+                                                    pRestrictor);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException("Couldn't load class " + pDispatcherClass + ": " + e,e);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException("Class " + pDispatcherClass + " has invalid constructor: " + e,e);
+        } catch (IllegalAccessException e) {
+        throw new IllegalArgumentException("Constructor of " + pDispatcherClass + " couldn't be accessed: " + e,e);
+        } catch (InvocationTargetException e) {
+            throw new IllegalArgumentException(e);
+        } catch (InstantiationException e) {
+            throw new IllegalArgumentException(pDispatcherClass + " couldn't be instantiated: " + e,e);
+        }
     }
 
     /**
@@ -153,18 +157,34 @@ public class BackendManager {
             ReflectionException, MBeanException, IOException {
 
         boolean debug = isDebug() && !"debugInfo".equals(pJmxReq.getOperation());
+
+        long time = 0;
+        if (debug) {
+            time = System.currentTimeMillis();
+        }
+        JSONObject json = callRequestDispatcher(pJmxReq);
+
+        // Update global history store
+        historyStore.updateAndAdd(pJmxReq,json);
+        if (debug) {
+            debug("Execution time: " + (System.currentTimeMillis() - time) + " ms");
+            debug("Response: " + json);
+        }
+        // Ok, we did it ...
+        json.put("status",200 /* success */);
+        return json;
+    }
+
+    // call the an appropriate request dispatcher
+    private JSONObject callRequestDispatcher(JmxRequest pJmxReq)
+            throws InstanceNotFoundException, AttributeNotFoundException, ReflectionException, MBeanException, IOException {
         Object retValue = null;
+        boolean useValueWithPath = false;
         boolean found = false;
         for (RequestDispatcher dispatcher : requestDispatchers) {
             if (dispatcher.canHandle(pJmxReq)) {
-                long time = 0;
-                if (debug) {
-                    time = System.currentTimeMillis();
-                }
                 retValue = dispatcher.dispatchRequest(pJmxReq);
-                if (debug) {
-                    debug("Execution time: " + (System.currentTimeMillis() - time) + " ms");
-                }
+                useValueWithPath = dispatcher.useReturnValueWithPath(pJmxReq);
                 found = true;
                 break;
             }
@@ -172,21 +192,10 @@ public class BackendManager {
         if (!found) {
             throw new IllegalStateException("Internal error: No dispatcher found for handling " + pJmxReq);
         }
-        JSONObject json = objectToJsonConverter.convertToJson(retValue,pJmxReq);
-
-        // Update global history store
-        historyStore.updateAndAdd(pJmxReq,json);
-        if (debug) {
-            debug("Response: " + json);
-        }
-        // Ok, we did it ...
-        json.put("status",200 /* success */);
-        if (debug) {
-            debug("Success");
-        }
-        return json;
+        return objectToJsonConverter.convertToJson(retValue,pJmxReq,useValueWithPath);
     }
 
+    // init various application wide stores for handling history and debug output.
     private void initStores(Map<Config, String> pConfig) {
         int maxEntries;
         try {

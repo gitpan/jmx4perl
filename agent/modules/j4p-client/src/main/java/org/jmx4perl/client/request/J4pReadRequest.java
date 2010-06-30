@@ -6,7 +6,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.jmx4perl.client.response.J4pReadResponse;
-import org.jmx4perl.client.response.J4pResponse;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -17,7 +16,7 @@ import org.json.simple.JSONObject;
  * @author roland
  * @since Apr 24, 2010
  */
-public class J4pReadRequest extends J4pMBeanRequest {
+public class J4pReadRequest extends AbtractJ4pMBeanRequest {
 
     // Name of attribute to request
     private List<String> attributes;
@@ -35,7 +34,7 @@ public class J4pReadRequest extends J4pMBeanRequest {
      *                    ignored.
      * @param pAttribute one or more attributes to request.
      */
-    protected J4pReadRequest(ObjectName pObjectName,String ... pAttribute) {
+    public J4pReadRequest(ObjectName pObjectName,String ... pAttribute) {
         super(J4pType.READ, pObjectName);
         attributes = Arrays.asList(pAttribute);
     }
@@ -49,7 +48,7 @@ public class J4pReadRequest extends J4pMBeanRequest {
      * @param pAttribute one or more attributes to request.
      * @throws javax.management.MalformedObjectNameException when argument is not a valid object name
      */
-    protected J4pReadRequest(String pObjectName,String ... pAttribute) throws MalformedObjectNameException {
+    public J4pReadRequest(String pObjectName,String ... pAttribute) throws MalformedObjectNameException {
         this(new ObjectName(pObjectName),pAttribute);
     }
 
@@ -100,7 +99,7 @@ public class J4pReadRequest extends J4pMBeanRequest {
             ret.put("attribute",attributes.get(0));
         } else {
             JSONArray attrs = new JSONArray();
-            attrs.addAll(Arrays.asList(attributes));
+            attrs.addAll(attributes);
             ret.put("attribute",attrs);
         }
         if (path != null) {

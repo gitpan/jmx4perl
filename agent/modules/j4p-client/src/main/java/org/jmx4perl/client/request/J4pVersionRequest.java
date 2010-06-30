@@ -12,18 +12,13 @@ import org.json.simple.JSONObject;
  */
 public class J4pVersionRequest extends J4pRequest {
 
-    protected J4pVersionRequest() {
+    public J4pVersionRequest() {
         super(J4pType.VERSION);
     }
 
     @Override
     List<String> getRequestParts() {
         return Collections.emptyList();
-    }
-
-    @Override
-    JSONObject toJson() {
-        return super.toJson();
     }
 
     @Override

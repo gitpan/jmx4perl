@@ -123,6 +123,7 @@ public class HistoryKey implements Serializable {
     }
 
     @Override
+    //CHECKSTYLE:OFF
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -138,6 +139,7 @@ public class HistoryKey implements Serializable {
 
         return true;
     }
+    //CHECKSTYLE:ON
 
     @Override
     public int hashCode() {
@@ -156,7 +158,7 @@ public class HistoryKey implements Serializable {
         sb.append("{type='").append(type).append('\'');
         sb.append(", mBean=").append(mBean);
         sb.append(", secondary='").append(secondary).append('\'');
-        sb.append(", path='").append(path).append('\'');
+        sb.append(", paJ4th='").append(path).append('\'');
         sb.append(", target='").append(target).append('\'');
         sb.append('}');
         return sb.toString();

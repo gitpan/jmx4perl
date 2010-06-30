@@ -1,17 +1,15 @@
 package org.jmx4perl.history;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
-import org.jmx4perl.JmxRequest;
+import java.io.Serializable;
+import java.util.*;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
-import static org.jmx4perl.JmxRequest.Type.*;
+import org.jmx4perl.JmxRequest;
+import org.json.simple.JSONObject;
 
-import java.util.*;
-import java.io.Serializable;
+import static org.jmx4perl.JmxRequest.Type.*;
 
 /*
  * jmx4perl - WAR Agent for exporting JMX via JSON
@@ -52,17 +50,37 @@ public class HistoryStore implements Serializable {
     private Map<HistoryKey, HistoryEntry> historyStore;
     private Map<HistoryKey, Integer /* max entries */> patterns;
 
+    // Keys used in JSON representation
+    private static final String KEY_HISTORY = "history";
+    private static final String KEY_VALUE = "value";
+    private static final String KEY_TIMESTAMP = "timestamp";
+
+    /**
+     * Constructor for a history store
+     *
+     * @param pTotalMaxEntries number of entries to hold at max. Even when configured, this maximum can not
+     *        be overwritten. This is a hard limit.
+     */
     public HistoryStore(int pTotalMaxEntries) {
         globalMaxEntries = pTotalMaxEntries;
         historyStore = new HashMap<HistoryKey, HistoryEntry>();
         patterns = new HashMap<HistoryKey, Integer>();
     }
 
-    public int getGlobalMaxEntries() {
+    /**
+     * Get the number
+     * @return
+     */
+    public synchronized int getGlobalMaxEntries() {
         return globalMaxEntries;
     }
 
-    synchronized public void setGlobalMaxEntries(int pGlobalMaxEntries) {
+    /**
+     * Set the global maximum limit for history entries
+     *
+     * @param pGlobalMaxEntries limit
+     */
+    public synchronized void setGlobalMaxEntries(int pGlobalMaxEntries) {
         globalMaxEntries = pGlobalMaxEntries;
         // Refresh all entries
         for (HistoryEntry entry : historyStore.values()) {
@@ -79,7 +97,7 @@ public class HistoryStore implements Serializable {
      * @param pMaxEntries number of maximal entries. If larger than globalMaxEntries,
      * then globalMaxEntries is used instead.
      */
-    public void configure(HistoryKey pKey,int pMaxEntries) {
+    public synchronized void configure(HistoryKey pKey,int pMaxEntries) {
         int maxEntries = pMaxEntries > globalMaxEntries ? globalMaxEntries : pMaxEntries;
 
         // Remove entries if set to 0
@@ -109,6 +127,47 @@ public class HistoryStore implements Serializable {
         }
     }
 
+    /**
+     * Reset the complete store.
+     */
+    public synchronized void reset() {
+        historyStore = new HashMap<HistoryKey, HistoryEntry>();
+        patterns = new HashMap<HistoryKey, Integer>();
+    }
+
+    /**
+     * Update the history store with the value of an an read, write or execute operation. Also, the timestamp
+     * of the insertion is recorded. Also, the recorded history values are added to the given json value.
+     *
+     * @param pJmxReq request for which an entry should be added in this history store
+     * @param pJson the JSONObject to which to add the history.
+     */
+    public synchronized void updateAndAdd(JmxRequest pJmxReq, JSONObject pJson) {
+        long timestamp = System.currentTimeMillis() / 1000;
+        pJson.put(KEY_TIMESTAMP,timestamp);
+
+        JmxRequest.Type type  = pJmxReq.getType();
+        if (type == EXEC || type == WRITE) {
+            HistoryEntry entry = historyStore.get(new HistoryKey(pJmxReq));
+            if (entry != null) {
+                synchronized(entry) {
+                    // A history data to json object for the response
+                    pJson.put(KEY_HISTORY,entry.jsonifyValues());
+
+                    // Update history for next time
+                    if (type == EXEC) {
+                        entry.add(pJson.get(KEY_VALUE),timestamp);
+                    } else if (type == WRITE) {
+                        // The new value to set as string representation
+                        entry.add(pJmxReq.getValue(),timestamp);
+                    }
+                }
+            }
+        } else if (type == READ) {
+            updateReadHistory(pJmxReq, pJson, timestamp);
+        }
+    }
+
     // Remove entries
     private void removeEntries(HistoryKey pKey) {
         if (pKey.isMBeanPattern()) {
@@ -131,40 +190,6 @@ public class HistoryStore implements Serializable {
         }
     }
 
-    /**
-     * Reset the complete store
-     */
-    public synchronized void reset() {
-        historyStore = new HashMap<HistoryKey, HistoryEntry>();
-        patterns = new HashMap<HistoryKey, Integer>();
-    }
-
-    public synchronized void updateAndAdd(JmxRequest pJmxReq, JSONObject pJson) {
-        long timestamp = System.currentTimeMillis() / 1000;
-        pJson.put("timestamp",timestamp);
-
-        JmxRequest.Type type  = pJmxReq.getType();
-        if (type == EXEC || type == WRITE) {
-            HistoryEntry entry = historyStore.get(new HistoryKey(pJmxReq));
-            if (entry != null) {
-                synchronized(entry) {
-                    // A history data to json object for the response
-                    pJson.put("history",entry.jsonifyValues());
-
-                    // Update history for next time
-                    if (type == EXEC) {
-                        entry.add(pJson.get("value"),timestamp);
-                    } else if (type == WRITE) {
-                        // The new value to set as string representation
-                        entry.add(pJmxReq.getValue(),timestamp);
-                    }
-                }
-            }
-        } else if (type == READ) {
-            updateReadHistory(pJmxReq, pJson, timestamp);
-        }
-    }
-
     // Update potentially multiple history entries for a READ request which could
     // return multiple values with a single request
     private void updateReadHistory(JmxRequest pJmxReq, JSONObject pJson, long pTimestamp)  {
@@ -173,7 +198,7 @@ public class HistoryStore implements Serializable {
             // We have a pattern and hence a value structure
             // of bean -> attribute_key -> attribute_value
             JSONObject history = new JSONObject();
-            for (Map.Entry<String,Object> beanEntry : ((Map<String,Object>) pJson.get("value")).entrySet()) {
+            for (Map.Entry<String,Object> beanEntry : ((Map<String,Object>) pJson.get(KEY_VALUE)).entrySet()) {
                 String beanName = beanEntry.getKey();
                 JSONObject beanHistory =
                         addAttributesFromComplexValue(
@@ -186,7 +211,7 @@ public class HistoryStore implements Serializable {
                 }
             }
             if (history.size() > 0) {
-                pJson.put("history",history);
+                pJson.put(KEY_HISTORY,history);
             }
         } else if (!pJmxReq.isSingleAttribute() || pJmxReq.getAttributeName() == null) {
             // Multiple attributes, but a single bean.
@@ -194,19 +219,19 @@ public class HistoryStore implements Serializable {
             // attribute_key -> attribute_value
             JSONObject history = addAttributesFromComplexValue(
                     pJmxReq,
-                    ((Map<String,Object>) pJson.get("value")),
+                    ((Map<String,Object>) pJson.get(KEY_VALUE)),
                     pJmxReq.getObjectNameAsString(),
                     pTimestamp);
             if (history.size() > 0) {
-                pJson.put("history",history);
+                pJson.put(KEY_HISTORY,history);
             }
         } else {
             // Single attribute, single bean. Value is the attribute_value
             // itself.
             addAttributeFromSingleValue(pJson,
-                                        "history",
+                                        KEY_HISTORY,
                                         new HistoryKey(pJmxReq),
-                                        pJson.get("value"),
+                                        pJson.get(KEY_VALUE),
                                         pTimestamp);
         }
     }

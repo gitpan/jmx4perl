@@ -70,7 +70,7 @@ public class J4pReadResponse extends J4pResponse<J4pReadRequest> {
             JSONObject attributes = getAttributesForObjectNameWithPatternRequest(pObjectName);
             return attributes.keySet();
         } else {
-            if (pObjectName != null && pObjectName.equals(requestMBean)) {
+            if (pObjectName != null && !pObjectName.equals(requestMBean)) {
                 throw new IllegalArgumentException("Given ObjectName " + pObjectName + " doesn't match with" +
                         " the single ObjectName " + requestMBean + " given in the request");
             }
@@ -87,7 +87,7 @@ public class J4pReadResponse extends J4pResponse<J4pReadRequest> {
      *         a single valued list. For more than one attribute, the attribute names
      *         a returned from the returned list.
      */
-    private Collection<String> getAttributes() {
+    public Collection<String> getAttributes() {
         ObjectName requestBean = request.getObjectName();
         if (requestBean.isPattern()) {
             throw new IllegalArgumentException(
@@ -107,8 +107,8 @@ public class J4pReadResponse extends J4pResponse<J4pReadRequest> {
     /**
      * Get the value for a certain MBean and a given attribute. This method is especially
      * useful if the request leading to this response was done for multiple MBeans (i.e.
-     * a get for an MBean pattern) and multiple attributes. However, this method can be
-     * used for for request for single MBeans and single attributes, but then the given
+     * a read for an MBean pattern) and multiple attributes. However, this method can be
+     * used for a request for single MBeans and single attributes as well, but then the given
      * parameters must match the parameters given in the request.
      *
      * @param pObjectName name of the Mbean or <code>null</code> if the request was only for a single
@@ -136,7 +136,7 @@ public class J4pReadResponse extends J4pResponse<J4pReadRequest> {
     }
 
     /**
-     * Get the value of a single attribute. This method is appropriate if the request was done for a single
+     * Get the value for a single attribute. This method is appropriate if the request was done for a single
      * MBean (no pattern), but multiple attributes. If it is called for a request with non-pattern MBean
      * and a single attribute, the given attribute must match the attribute of the request. If this method is
      * called with a <code>null</code> argument, then it will return the value if the request was for
@@ -188,6 +188,4 @@ public class J4pReadResponse extends J4pResponse<J4pReadRequest> {
         }
         return attributes;
     }
-
-
 }
