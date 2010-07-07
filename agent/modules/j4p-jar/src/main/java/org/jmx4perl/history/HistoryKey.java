@@ -122,8 +122,9 @@ public class HistoryKey implements Serializable {
         return mBean.apply(pKey.mBean);
     }
 
+    // CHECKSTYLE:OFF
     @Override
-    //CHECKSTYLE:OFF
+    @SuppressWarnings("PMD.IfStmtsMustUseBraces")
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -139,7 +140,7 @@ public class HistoryKey implements Serializable {
 
         return true;
     }
-    //CHECKSTYLE:ON
+    // CHECKSTYLE:ON
 
     @Override
     public int hashCode() {

@@ -5,11 +5,12 @@ import java.util.List;
 
 import javax.management.MalformedObjectNameException;
 
-import org.jmx4perl.client.*;
-import org.jmx4perl.client.response.*;
-import org.junit.Test;
+import org.jmx4perl.client.exception.*;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.*;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
+import static org.testng.AssertJUnit.assertEquals;
 
 /**
  * @author roland
