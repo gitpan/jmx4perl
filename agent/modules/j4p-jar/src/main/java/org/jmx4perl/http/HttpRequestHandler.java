@@ -146,8 +146,13 @@ public class HttpRequestHandler {
      * @param exp exception to handle
      * @return its JSON representation
      */
-    public JSONObject handleThrowable(Throwable exp) {
+    public JSONObject handleThrowable(Throwable pThrowable) {
         JSONObject json;
+        Throwable exp = pThrowable;
+        if (exp instanceof RuntimeMBeanException) {
+            // Unwrap 
+            exp = exp.getCause();
+        }
         if (exp instanceof IllegalArgumentException) {
             json = getErrorJSON(400,exp);
         } else if (exp instanceof IllegalStateException) {
