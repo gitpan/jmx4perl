@@ -1,3 +1,16 @@
+0.74 (2011-1-16)
+  - Fixed problem with multichecks including operation-checks with
+    arguments. Specifying them in a configuration has been falsely
+    ignored. 
+  - Added '--method' command line option and 'Method' check
+    configuration option to check_jmx4perl for selecting the prefered
+    HTTP request method. 
+  - Fixed normalization of time values (RT #63545)
+  - Improved default check_jmx4perl configuration (in hopefully a backward 
+    compatible way)
+  - Multi check service summary now contains the name of failed services
+  - Fixed problems with a single '/' argument (RT #62915)
+
 0.73 (2010-11-03)
   - Fixed RT #61903 which occurs when the same check is referenced 
     multiple times (with potentially different parameters) in a 

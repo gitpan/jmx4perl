@@ -64,7 +64,6 @@ sub get_requests {
     my $jmx = shift;
     my $args = shift;
 
-    my $request;
     my $do_read = $self->attribute || $self->value;
     if ($self->alias) {
         my $alias = JMX::Jmx4Perl::Alias->by_name($self->alias);
@@ -72,11 +71,18 @@ sub get_requests {
         $do_read = $alias->type eq "attribute";
     }
     my @requests = ();
+    my $request;
     if ($do_read) {
-        push @requests,JMX::Jmx4Perl::Request->new(READ,$self->_prepare_read_args($jmx));
+        $request = JMX::Jmx4Perl::Request->new(READ,$self->_prepare_read_args($jmx));
     } else {
-        push @requests,JMX::Jmx4Perl::Request->new(EXEC,$self->_prepare_exec_args($jmx,@$args));
+        $request = JMX::Jmx4Perl::Request->new(EXEC,$self->_prepare_exec_args($jmx,@$args));
     }
+    my $method = $self->{np}->opts->{method} || $self->{config}->{method};
+    if ($method) {
+        $request->method($method);
+    }
+    push @requests,$request;
+
     if ($self->base) {
         if (!looks_like_number($self->base)) {
             # It looks like a number, so we will use the base literally
@@ -156,6 +162,15 @@ sub extract_responses {
                           $self->unit ? (uom => $self->unit) : ());
         # Do the real check.
         my ($code,$mode) = $self->_check_threshhold($rel_value);
+        # For Multichecks, we remember the label of a currently failed check
+        if ($code != OK && $opts->{error_stat}) {
+            my $label = $self->{config}->{key} || $self->{config}->{name};
+            if ($label) {
+                my $arr = $opts->{error_stat}->{$code} || [];
+                push @$arr,$label;
+                $opts->{error_stat}->{$code} = $arr;
+            }
+        }
         my ($base_conv,$base_unit) = $self->_normalize_value($base_value);
         $np->add_message($code,$self->_exit_message(code => $code,mode => $mode,rel_value => $rel_value, 
                                                     value => $value_conv, unit => $unit,base => $base_conv, 
@@ -285,10 +300,10 @@ sub _base_value {
 my @UNITS = ([ qw(ns us ms s m h d) ],[qw(B KB MB GB TB)]);
 my %UNITS = 
   (
-   ns => 10**3,
+   ns => 1,   
    us => 10**3,
    ms => 10**3,
-   s => 1,
+   s => 10**3,
    m => 60,
    h => 60,
    d => 24,
@@ -325,7 +340,7 @@ sub _normalize_value {
                 # Go down the scale ...
                 return ($value,$unit) if $i == 0;
                 for my $j (reverse(0 .. $i-1)) {
-                    if ($ret <= 1) {     
+                    if ($ret < 1) {     
                         $ret *= $UNITS{$units->[$j+1]};
                         $u = $units->[$j];
                     } else {
@@ -415,8 +430,21 @@ sub _prepare_exec_args {
     my $np = $self->{np};
     my $jmx = shift;
 
-    my @args = @_;
-
+    # Merge CLI arguments and arguments from the configuration,
+    # with CLI arguments taking precedence
+    my @cli_args = @_;
+    my $config_args = $self->{config}->{args};
+    my @args = ();
+    if ($config_args) {
+        my @c_args = (@$config_args);
+        while (@cli_args || @c_args) {
+            my $cli_arg = shift @cli_args;
+            my $config_arg = shift @c_args;
+            push @args, defined($cli_arg) ? $cli_arg : $config_arg;
+        }
+    } else {
+        @args = @cli_args;
+    }
     if ($self->alias) {
         my @req_args = $jmx->resolve_alias($self->alias);
         $np->nagios_die("Cannot resolve operation alias ",$self->alias()) unless @req_args >= 2;
