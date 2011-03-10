@@ -59,7 +59,7 @@
    "provides" : {
       "JMX::Jmx4Perl" : {
          "file" : "lib/JMX/Jmx4Perl.pm",
-         "version" : "0.90_2"
+         "version" : "0.90_3"
       },
       "JMX::Jmx4Perl::Agent" : {
          "file" : "lib/JMX/Jmx4Perl/Agent.pm",
@@ -248,5 +248,5 @@
          "http://opensource.org/licenses/gpl-license.php"
       ]
    },
-   "version" : "0.90_2"
+   "version" : "0.90_3"
 }
