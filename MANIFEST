@@ -42,6 +42,7 @@ lib/JMX/Jmx4Perl/Agent/Jolokia/Logger.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Meta.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/ChecksumVerifier.pm
+lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/GnuPGVerifier.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/MD5Verifier.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/OpenPGPVerifier.pm
 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/SHA1Verifier.pm
@@ -101,3 +102,4 @@ t/j4p_test.cfg
 t/lib/It.pm
 t/lib/ProductTest/Test1Handler.pm
 t/lib/ProductTest/Test2Handler.pm
+SIGNATURE    Added here by Module::Build

@@ -102,7 +102,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.90_3";
+$VERSION = "0.90_4";
 
 my $REGISTRY = {
                 # Agent based
@@ -487,7 +487,9 @@ sub search {
     my $request = new JMX::Jmx4Perl::Request(SEARCH,$pattern);
     my $response = $self->request($request);
 
-    return undef if $response->status == 404; # nothing found
+    # An error of 404 was the behaviour of Jolokia < 0.90,
+    # for > 0.90 an empty list was returned
+    return undef if $response->status == 404 || @{$response->value} == 0; # nothing found
     if ($response->is_error) {
         print Dumper($response);
         die "Error searching for $pattern: ",$response->error_text;
