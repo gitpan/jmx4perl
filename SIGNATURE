@@ -14,12 +14,12 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 5d8b9e6f3a64d4eec7eb9079ec84844ca1917115 Build.PL
+SHA1 f657ed160319f1f2885a72f2b65dedda31d34848 Build.PL
 SHA1 07eb56f72e5809210531d5612e5416077565866a CHANGES
 SHA1 ed781502a4597d74b7d440cfb16a6b2778fc42d3 LICENSE
-SHA1 0f11c4f0e8322578ceb2aa6810d2408f83f4bad9 MANIFEST
-SHA1 db3ca576422969dabb9fdca6e95eb298eeff4b2a META.json
-SHA1 e99ddef0ce14012c3de32c8e558bc81736ecb3ac META.yml
+SHA1 afd72665d1f5d89cb53a3c2b4ee264d964c7d0bf MANIFEST
+SHA1 857bfd41c355b33f259133f9f883a654882f00f7 META.json
+SHA1 66f0c8cc400c5a0464bc286fe74d9bc02f7c2d25 META.yml
 SHA1 63e78ee0bcfa663544ff4b794a262d471f62d1e0 README
 SHA1 1293d955fab938aabfa3a08804e019425fcd84a7 config/common.cfg
 SHA1 023b65afe18a14c44f01981e98e6869a6a7db19c config/jboss.cfg
@@ -55,7 +55,7 @@ SHA1 d7f68ee144c7e8b8413ba7664e04d9edd80647bf it/t/70_overloaded_method.t
 SHA1 67a814aa423c153d300ce7981497274ef679c556 it/t/80_read.t
 SHA1 d25efad7167cfeeafc6676c7e6ef8ee13ce91909 it/t/85_path_escaping.t
 SHA1 51f5efd9e4f466125fdc08bb0e81763d46ee6f8c it/t/90_search.t
-SHA1 1c756f4185456a2f8cd28e5f8fa5941c16e9de8e lib/JMX/Jmx4Perl.pm
+SHA1 00991046067a949e81ba54683971817895d340d0 lib/JMX/Jmx4Perl.pm
 SHA1 77015602c6e145a53bfd848e96186b4a04925963 lib/JMX/Jmx4Perl/Agent.pm
 SHA1 50d56c63534075ab3043e89f7b708965b0cf0240 lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
 SHA1 affa715638b0a543dd341aa6054be71eb055984a lib/JMX/Jmx4Perl/Agent/Jolokia/DownloadAgent.pm
@@ -63,13 +63,14 @@ SHA1 b9f9ed36dcbcf9e626a589d84c9ccacc8230ea93 lib/JMX/Jmx4Perl/Agent/Jolokia/Log
 SHA1 8cad4be3e5dfc85b71775c98b8c40cbb495d1793 lib/JMX/Jmx4Perl/Agent/Jolokia/Meta.pm
 SHA1 4dfd22c243e988900b04537a12344dbe17f915d4 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier.pm
 SHA1 28a1bc90664694e99e5d8e4ce7dfd4dbac499197 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/ChecksumVerifier.pm
-SHA1 5bf7d4dd4f36393262a808e3046d2709bd405b96 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/GnuPGVerifier.pm
+SHA1 6637ed1faa531765318265b231c80a51f5fa26f8 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/GnuPGVerifier.pm
 SHA1 baea522b6d930ef9300c815e4e4d4872a9c8b3f5 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/MD5Verifier.pm
-SHA1 65bceba21de56148a359a52c422c454ced57dd11 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/OpenPGPVerifier.pm
+SHA1 bc7e04bb7676e197949d7860cf4720bf66b500b1 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/OpenPGPVerifier.pm
+SHA1 6bf7f6fe4dec43126a5b4a15ad88d024effa2a22 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/PGPKey.pm
 SHA1 16395880013ae48af3f19e3026317fc997590ae3 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/SHA1Verifier.pm
 SHA1 42225a74b48e3d20497ac7e2986b2c9e2f659050 lib/JMX/Jmx4Perl/Agent/Jolokia/WebXmlHandler.pm
 SHA1 791ef08d11becf808d80d8c498e6d74653b41d04 lib/JMX/Jmx4Perl/Agent/UserAgent.pm
-SHA1 0f4c7ad749f2ca7c7108ad1537a9b57fa498bd42 lib/JMX/Jmx4Perl/Alias.pm
+SHA1 388974f6aa0f266b98e6d051ff6a27509d9ea12a lib/JMX/Jmx4Perl/Alias.pm
 SHA1 1aecc0a8dabd6ca1cb6753b72994a9618a16b6a6 lib/JMX/Jmx4Perl/Alias/Object.pm
 SHA1 fac71405ffe62455e377685296fceda9cad39e98 lib/JMX/Jmx4Perl/Config.pm
 SHA1 93cfd82d9af98926796d978832f1f1d36385ff96 lib/JMX/Jmx4Perl/J4psh.pm
@@ -84,7 +85,7 @@ SHA1 5cb83a0fbea89f81784d68788f138433537f0d72 lib/JMX/Jmx4Perl/J4psh/Shell.pm
 SHA1 7a685a1751e985c2f056d0e536d44d2df4a32100 lib/JMX/Jmx4Perl/Manual.pod
 SHA1 4a6636d44619ea108dd042d1b7d338e59c3d653c lib/JMX/Jmx4Perl/Nagios/CactiJmx4Perl.pm
 SHA1 4aecc673e974eff4b1967d208308718b25aedb71 lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
-SHA1 4b337418a535bc856f520d08994621f41074c504 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
+SHA1 2ece310115791aad654bf553966ed0c739b88831 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
 SHA1 999e651ec2674df085829d3f61a1bba2b3fecd58 lib/JMX/Jmx4Perl/Product/ActiveMQ.pm
 SHA1 f87f1d2e7ed105b34ef386d2cb4645367465bb55 lib/JMX/Jmx4Perl/Product/BaseHandler.pm
 SHA1 af4733aec45378e74f443ad31cd1fad6f208fa78 lib/JMX/Jmx4Perl/Product/Geronimo.pm
@@ -101,30 +102,30 @@ SHA1 b2c22c3c2fc228828df8c463ca25f48b8c9161b3 lib/JMX/Jmx4Perl/Product/Unknown.p
 SHA1 38ec734500546e7490e1610bf79c9ab9efb41959 lib/JMX/Jmx4Perl/Product/Weblogic.pm
 SHA1 d24b0c995ac8c6ab15f515d96c37c198259d9575 lib/JMX/Jmx4Perl/Product/Websphere.pm
 SHA1 fe3e55a6e4e6c9d5f34a7e429e3f2268dc112c8c lib/JMX/Jmx4Perl/Request.pm
-SHA1 b81434a00ede2067ee72deec3e43d346dedb1a34 lib/JMX/Jmx4Perl/Response.pm
+SHA1 0170fa2a769fb63619649e8bde22395159b1bb6e lib/JMX/Jmx4Perl/Response.pm
 SHA1 e3571527358bebebcaa7f29c05f0995f20a9855c scripts/cacti_jmx4perl
-SHA1 fa61b475ef86ff451a182d5dc1b63a58f6cdb39a scripts/check_jmx4perl
+SHA1 3a056950a07cf5169309e74ef2ab7ec2d032a309 scripts/check_jmx4perl
 SHA1 9663c2124ba7ab3d0da0d119ff5bcc11f5f7e6e4 scripts/j4psh
 SHA1 bae8f0d702ab3228c47c3c6dc7e9a2ed9ce19917 scripts/jmx4perl
-SHA1 45dd18d70bf006a3e28c6dddc6dd5032e97302fe scripts/jolokia
+SHA1 ee494e235cc9d98106018bf8850a97a4af7c7828 scripts/jolokia
 SHA1 d2dce15b5a197c7c2324a2368d8fcfbf9873244e t/10_handler.t
 SHA1 4a8bb19315ab3f09b894d0d3e3833526b2ba747b t/20_alias.t
 SHA1 56eec9d8b9b6e2aee11180102f8145ff74a63c3e t/30_request.t
 SHA1 2583d5d11a6b34f1aba26380a88ebb1fbaf617ab t/40_check_jmx4perl.t
 SHA1 34c4b74957501c3bcaa75d36c0976b4d745d401b t/50_config.t
 SHA1 2d21e941e2c2fe6285ed464c904df9b7fb649759 t/60_parse_name.t
-SHA1 0abb450135a62097f5df2fd16f491f1e494d0ada t/70_pod_syntax.t
+SHA1 80827d16a010059986e159dbe6e4c29e313cb524 t/70_pod_syntax.t
 SHA1 58f29a2ce116a173081bcce2402a4ecd93593c00 t/j4p_test.cfg
-SHA1 ee8b42d4387105e8c3a987b11db3725498f9256e t/lib/It.pm
+SHA1 7ec1cf1daeff5ddb9c7c068cb4688715e217c2cf t/lib/It.pm
 SHA1 8f44123785800a2f16d2c4868bd50280fc7b0ca7 t/lib/ProductTest/Test1Handler.pm
 SHA1 7dfbae1265b70a3c56ef1e1af64ef7549aa7b976 t/lib/ProductTest/Test2Handler.pm
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG/MacGPG2 v2.0.17 (Darwin)
 Comment: GPGTools - http://gpgtools.org
 
-iQCVAwUBTZ4xSUKyJpPvEBFlAQI6dwQAobrmy8VFM+3dBDn67kZhoPoxR3Gb/Uxs
-3U5dO8+GLELftbs0IX31+nJVfGlB5q7mNn679T2wWzcTqjosCvs3JRtrykKzb99+
-aY4gCjuPh+9MuGVMNZmnj/nmQbzx71JwCcIfWTjpx7m8fhdr3/bPoB0vxJHnXOnq
-tN6K6j8oRHo=
-=j9Lu
+iQCVAwUBTZ6twkKyJpPvEBFlAQKSCAP/Zo52Zr3N7hHBkMJ1cITSSt3C+EkhmZ63
+xySfHhmv+jvO2rprF4ICpo4cpRZ6oAX3J9ig43SvLbar4nATyDDCVRQ+NBh4yRzI
+ZceAJebdUxzkvhgskdU//1EjhdqwaTGLqofipznM9b0MpQt5tyQZScZnDvAJJO4C
+MG/ujmSHDmA=
+=L3mI
 -----END PGP SIGNATURE-----
