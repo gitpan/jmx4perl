@@ -102,7 +102,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.90";
+$VERSION = "0.91";
 
 my $REGISTRY = {
                 # Agent based
@@ -432,14 +432,12 @@ sub set_attribute {
     my ($object,$attribute,$path,$value) = 
       $self->_extract_get_set_parameters(with_value => 1,params => [@_]);
     croak "No object name provided" unless $object;
-
     my $response;
     if (ref($object) eq "CODE") {
         $response =  $self->delegate_to_handler($object,$value);        
     } else {
         croak "No attribute provided for object $object" unless $attribute;
         croak "No value to set provided for object $object and attribute $attribute" unless defined($value);
-        
         my $request = JMX::Jmx4Perl::Request->new(WRITE,$object,$attribute,$value,$path);
         $response = $self->request($request);
     }
@@ -489,12 +487,11 @@ sub search {
 
     # An error of 404 was the behaviour of Jolokia < 0.90,
     # for > 0.90 an empty list was returned
-    return undef if $response->status == 404 || @{$response->value} == 0; # nothing found
+    return undef if $response->status == 404;
     if ($response->is_error) {
-        print Dumper($response);
         die "Error searching for $pattern: ",$response->error_text;
     }
-    return $response->value;    
+    return ref($response->value) eq "ARRAY" ? $response->value : undef;    
 }
 
 =item   $ret = $jmx->execute(...)

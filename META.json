@@ -30,6 +30,7 @@
             "Archive::Zip" : 0,
             "Carp" : 0,
             "Config::General" : 0,
+            "Crypt::Blowfish_PP" : 0,
             "Data::Dumper" : 0,
             "Digest::MD5" : 0,
             "Digest::SHA1" : 0,
@@ -57,7 +58,7 @@
    "provides" : {
       "JMX::Jmx4Perl" : {
          "file" : "lib/JMX/Jmx4Perl.pm",
-         "version" : "0.90"
+         "version" : "0.91"
       },
       "JMX::Jmx4Perl::Agent" : {
          "file" : "lib/JMX/Jmx4Perl/Agent.pm",
@@ -254,5 +255,5 @@
          "http://opensource.org/licenses/gpl-license.php"
       ]
    },
-   "version" : "0.90"
+   "version" : "0.91"
 }

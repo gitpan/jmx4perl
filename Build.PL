@@ -29,6 +29,27 @@ EOT
 
 my $msg = <<EOT;
 
+jmx4perl
+========
+
+jmx4perl is a command line utility for accessing Jolokia agents
+(www.jolokia.org). It can be used for script based exploration 
+and easy inspection of the JMX space.
+
+Install 'jmx4perl' ? (y/n)
+EOT
+
+chomp $msg;
+my $answer = &y_n($msg,"y");
+if ($answer) {
+    &add_reqs(
+              "Crypt::Blowfish_PP" => 0 # opt
+             );
+    &add_script("scripts/jmx4perl" => 1);   
+}
+
+my $msg = <<EOT;
+
 check_jmx4perl
 ==============
 
@@ -46,6 +67,7 @@ if ($answer) {
               "Text::ParseWords" => 0,    # req
               "Config::General" => 0,     # req
               "Pod::Usage" => 0,          # opt
+              "Crypt::Blowfish_PP" => 0 # opt
              );
     &add_script("scripts/check_jmx4perl" => 1);   
 }
@@ -68,6 +90,7 @@ if ($answer) {
               "Text::ParseWords" => 0,    # req
               "Config::General" => 0,     # req
               "Pod::Usage" => 0,          # opt
+              "Crypt::Blowfish_PP" => 0 # opt
              );
     &add_script("scripts/cacti_jmx4perl" => 1);   
 }
@@ -92,7 +115,8 @@ if ($answer) {
               "Term::Clui" => 0,         # req 
               "Term::Size" => "0.207",   # opt 
               "Config::General" => 0,    # opt
-              "File::SearchPath" => 0    # opt 
+              "File::SearchPath" => 0,   # opt 
+              "Crypt::Blowfish_PP" => 0  # opt
              );
     &add_script("scripts/j4psh" => 1);
     # check for Term::ReadLine::Gnu

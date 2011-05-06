@@ -14,17 +14,17 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 f657ed160319f1f2885a72f2b65dedda31d34848 Build.PL
-SHA1 c26c1a3725c8f9040013584fa9fd92e77fdaa647 CHANGES
+SHA1 c8738f963310c961a7b5872c39deabeb739f17be Build.PL
+SHA1 5e7853fa9e769579361d19e7b26c517bac045656 CHANGES
 SHA1 ed781502a4597d74b7d440cfb16a6b2778fc42d3 LICENSE
-SHA1 afd72665d1f5d89cb53a3c2b4ee264d964c7d0bf MANIFEST
-SHA1 5e3c7555628bc6c228312ae985f2498966249ac4 META.json
-SHA1 763d05e1d537164e776b0f1749e238b124419b9d META.yml
+SHA1 fb258d6929bbf9cc6722433d2de9d7d20a663b5e MANIFEST
+SHA1 30305114492c258bd79c78ad5737b76dc8a39c61 META.json
+SHA1 1d6b04da0a9e430e8b29f8153c58cfd51e3ca5dc META.yml
 SHA1 63e78ee0bcfa663544ff4b794a262d471f62d1e0 README
 SHA1 1293d955fab938aabfa3a08804e019425fcd84a7 config/common.cfg
 SHA1 023b65afe18a14c44f01981e98e6869a6a7db19c config/jboss.cfg
 SHA1 03a45a425166dc7b5cee93cc9b59d0532332ecc3 config/jetty.cfg
-SHA1 18a7b31944db4aa1387e8abb0e80aee5ad434ccd config/memory.cfg
+SHA1 b783ba8830bc903a7ac467278eddb0e97baf5ddb config/memory.cfg
 SHA1 205f5893007275f45f0b1b207a6e89067d7ce84a config/threads.cfg
 SHA1 4ab113dd0ecb45bbad091b3da73d8fab5686e9a4 config/tomcat.cfg
 SHA1 93240d3c42fe8d19afb1a7a9c56610368b56ed38 examples/jsr77.pl
@@ -46,17 +46,18 @@ SHA1 1c7a1ba6b9c96749790addb9770c40c8dfe72dc2 it/t/51_check_relative.t
 SHA1 8a06b164569e82902fbb3633395edadfb93cfb18 it/t/52_check_operation.t
 SHA1 1c101205c88abfa00a02f916468d39a3e149a8f9 it/t/53_check_non_numeric.t
 SHA1 35ff1a168c975eef7894d1c53ea638160c3b01b5 it/t/54_check_unit.t
-SHA1 13b1aa62811ade4241bcdf7fb7870f23717d45c9 it/t/55_check_incremental.t
+SHA1 4c83d5971720b95941dec403fb4e123600997fe8 it/t/55_check_incremental.t
 SHA1 c70d9f96366e7ad78d11298a7efd5e768b610c44 it/t/56_check_value.t
 SHA1 f806bd68e7bcc07367f8110dad35ff4b828a096e it/t/57_check_config.t
 SHA1 b380405d0469dcc0d44d518e6bd74aab7b0383c3 it/t/58_check_multi_config.t
+SHA1 aa53a5d56a50d1e5bff32fd9cae5ecf80225fcec it/t/59_check_timeout.t
 SHA1 98388b48061af9b55a26a765a6b22e26489fbbbd it/t/60_bulk_request.t
 SHA1 d7f68ee144c7e8b8413ba7664e04d9edd80647bf it/t/70_overloaded_method.t
 SHA1 67a814aa423c153d300ce7981497274ef679c556 it/t/80_read.t
 SHA1 d25efad7167cfeeafc6676c7e6ef8ee13ce91909 it/t/85_path_escaping.t
 SHA1 51f5efd9e4f466125fdc08bb0e81763d46ee6f8c it/t/90_search.t
-SHA1 7489a87504c9eb25906f29ea30d8ef2de8a6b62a lib/JMX/Jmx4Perl.pm
-SHA1 77015602c6e145a53bfd848e96186b4a04925963 lib/JMX/Jmx4Perl/Agent.pm
+SHA1 6505a2ae26f690998fbd066adf61af43f9158fba lib/JMX/Jmx4Perl.pm
+SHA1 be0a8d94505bf67f9b81fa692bae5f007b12d9eb lib/JMX/Jmx4Perl/Agent.pm
 SHA1 50d56c63534075ab3043e89f7b708965b0cf0240 lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
 SHA1 affa715638b0a543dd341aa6054be71eb055984a lib/JMX/Jmx4Perl/Agent/Jolokia/DownloadAgent.pm
 SHA1 b9f9ed36dcbcf9e626a589d84c9ccacc8230ea93 lib/JMX/Jmx4Perl/Agent/Jolokia/Logger.pm
@@ -69,7 +70,7 @@ SHA1 bc7e04bb7676e197949d7860cf4720bf66b500b1 lib/JMX/Jmx4Perl/Agent/Jolokia/Ver
 SHA1 6bf7f6fe4dec43126a5b4a15ad88d024effa2a22 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/PGPKey.pm
 SHA1 16395880013ae48af3f19e3026317fc997590ae3 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/SHA1Verifier.pm
 SHA1 42225a74b48e3d20497ac7e2986b2c9e2f659050 lib/JMX/Jmx4Perl/Agent/Jolokia/WebXmlHandler.pm
-SHA1 791ef08d11becf808d80d8c498e6d74653b41d04 lib/JMX/Jmx4Perl/Agent/UserAgent.pm
+SHA1 a69df0bf5590f4e35064556304809a780d4298cb lib/JMX/Jmx4Perl/Agent/UserAgent.pm
 SHA1 388974f6aa0f266b98e6d051ff6a27509d9ea12a lib/JMX/Jmx4Perl/Alias.pm
 SHA1 1aecc0a8dabd6ca1cb6753b72994a9618a16b6a6 lib/JMX/Jmx4Perl/Alias/Object.pm
 SHA1 fac71405ffe62455e377685296fceda9cad39e98 lib/JMX/Jmx4Perl/Config.pm
@@ -84,8 +85,8 @@ SHA1 b052a6edf5402f8f941b0301707afb4fb335fe83 lib/JMX/Jmx4Perl/J4psh/ServerHandl
 SHA1 5cb83a0fbea89f81784d68788f138433537f0d72 lib/JMX/Jmx4Perl/J4psh/Shell.pm
 SHA1 7a685a1751e985c2f056d0e536d44d2df4a32100 lib/JMX/Jmx4Perl/Manual.pod
 SHA1 4a6636d44619ea108dd042d1b7d338e59c3d653c lib/JMX/Jmx4Perl/Nagios/CactiJmx4Perl.pm
-SHA1 4aecc673e974eff4b1967d208308718b25aedb71 lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
-SHA1 2ece310115791aad654bf553966ed0c739b88831 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
+SHA1 c3efccf47d72d8f961bbd50f4bfcb679abf89e3f lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
+SHA1 e059b7b1ac7460ba79545b289d0cf2141b479791 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
 SHA1 999e651ec2674df085829d3f61a1bba2b3fecd58 lib/JMX/Jmx4Perl/Product/ActiveMQ.pm
 SHA1 f87f1d2e7ed105b34ef386d2cb4645367465bb55 lib/JMX/Jmx4Perl/Product/BaseHandler.pm
 SHA1 af4733aec45378e74f443ad31cd1fad6f208fa78 lib/JMX/Jmx4Perl/Product/Geronimo.pm
@@ -104,10 +105,10 @@ SHA1 d24b0c995ac8c6ab15f515d96c37c198259d9575 lib/JMX/Jmx4Perl/Product/Websphere
 SHA1 fe3e55a6e4e6c9d5f34a7e429e3f2268dc112c8c lib/JMX/Jmx4Perl/Request.pm
 SHA1 0170fa2a769fb63619649e8bde22395159b1bb6e lib/JMX/Jmx4Perl/Response.pm
 SHA1 e3571527358bebebcaa7f29c05f0995f20a9855c scripts/cacti_jmx4perl
-SHA1 3a056950a07cf5169309e74ef2ab7ec2d032a309 scripts/check_jmx4perl
+SHA1 335c06644adf38dcb5fedde0074ce60273e8abd1 scripts/check_jmx4perl
 SHA1 9663c2124ba7ab3d0da0d119ff5bcc11f5f7e6e4 scripts/j4psh
-SHA1 bae8f0d702ab3228c47c3c6dc7e9a2ed9ce19917 scripts/jmx4perl
-SHA1 ee494e235cc9d98106018bf8850a97a4af7c7828 scripts/jolokia
+SHA1 397d678af9de894d31dcc4ba75eeb872ed3b02f7 scripts/jmx4perl
+SHA1 fa436f7a658d1b23d3f2609b1fd73003e9cf4dd1 scripts/jolokia
 SHA1 d2dce15b5a197c7c2324a2368d8fcfbf9873244e t/10_handler.t
 SHA1 4a8bb19315ab3f09b894d0d3e3833526b2ba747b t/20_alias.t
 SHA1 56eec9d8b9b6e2aee11180102f8145ff74a63c3e t/30_request.t
@@ -123,9 +124,9 @@ SHA1 7dfbae1265b70a3c56ef1e1af64ef7549aa7b976 t/lib/ProductTest/Test2Handler.pm
 Version: GnuPG/MacGPG2 v2.0.17 (Darwin)
 Comment: GPGTools - http://gpgtools.org
 
-iQCVAwUBTaMqkEKyJpPvEBFlAQLNFwP+PtVch9RaDi4GiUpuHudHVbxKoVfvc5CF
-c8QyxZB4DIBb5hqILer5vlvI0U1nOw63i/p0Vesd5NSaHksWC82SvWuRLPF1kbtb
-8MRjbP5U2sidYBKqpMCoPCvZ0/r8x9Or93g6PCeR5XNFcLfBeiT4ZIZbB9DARdQC
-T8DqJyflxHc=
-=idNL
+iQCVAwUBTcQ0u0KyJpPvEBFlAQICxgP8CEJiofplbUNIaKl4+HSLYCMFZRn9NSj8
+lzdy6ANswziRKT1OQAG3W113mr8XzJYpv69cupFSR1aRw8PKpMs+O1i/ixY/8Cll
+nSJR18V323iC0tpyBwSNxVSoPd5uE2+ChfHIUvShKpaxtSpfZm8FcHexkpxzbnN1
+UnP+BUfv1uQ=
+=fHDl
 -----END PGP SIGNATURE-----

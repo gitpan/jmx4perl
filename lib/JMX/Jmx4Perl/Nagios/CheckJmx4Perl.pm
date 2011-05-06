@@ -74,12 +74,14 @@ sub execute {
     eval {
         # Request
         my @optional = ();
+
         my $error_stat = { };
         my $target_config = $self->target_config;
         my $jmx = JMX::Jmx4Perl->new(mode => "agent", url => $self->url, user => $self->user, 
                                      password => $self->password,
                                      product => $self->product, 
                                      proxy => $self->proxy_config,
+                                     timeout => $np->opts->{timeout} || 180,
                                      target => $target_config);
         my @requests;
         for my $check (@{$self->{checks}}) {
@@ -117,7 +119,7 @@ sub execute {
         # uses this tag to catch an exit code of a plugin. We rethrow this
         # exception if we detect this pattern.
         if ($@ !~ /^ExitTrap:/) {
-            $np->nagios_die("Error: $@");
+            $self->nagios_die("Error: $@");
         } else {
             die $@;
         }
@@ -164,10 +166,10 @@ sub _prepare_multicheck_message {
                 $extra .= scalar(@$errs) . " " . $STATUS_TEXT{$code} . " (" . join (",",@$errs) . "), ";
                 $nr += scalar(@$errs);
             }
-                }
+        }
         if ($nr > 0) {
             # Cut off extra chars at the end
-            $extra = substr($extra,-2);
+            $extra = substr($extra,0,-2);
         }
         $summary = $nr . " of " . $nr_checks . " failed: " . $extra;
     }
@@ -264,15 +266,15 @@ sub _verify_and_initialize {
     # If a server name is given, we use that for the connection parameters
     if ($o->server) {
         $self->{server_config} = $config->get_server_config($o->server)
-          || $np->nagios_die("No server configuration for " . $o->server . " found");
+          || $self->nagios_die("No server configuration for " . $o->server . " found");
     } 
 
     # Sanity checks
-    $np->nagios_die("No Server URL given") unless $self->url;
+    $self->nagios_die("No Server URL given") unless $self->url;
 
     for my $check (@{$self->{checks}}) {
         my $name = $check->name ? " [Check: " . $check->name . "]" : "";
-        $np->nagios_die("An MBean name and a attribute/operation must be provided " . $name)
+        $self->nagios_die("An MBean name and a attribute/operation must be provided " . $name)
           if ((!$check->mbean || (!$check->attribute && !$check->operation)) && !$check->alias && !$check->value);
         $self->verify_check($check,$name);
     }
@@ -283,7 +285,7 @@ sub verify_check {
     my $check = shift;
     my $name = shift;
     my $np = $self->{np};
-    $np->nagios_die("At least a critical or warning threshold must be given " . $name) 
+    $self->nagios_die("At least a critical or warning threshold must be given " . $name) 
       if ((!defined($check->critical) && !defined($check->warning)));        
 }
 
@@ -296,8 +298,8 @@ sub _extract_checks {
     
     my $np = $self->{np};
     if ($check) {
-        $np->nagios_die("No configuration given") unless $config;
-        $np->nagios_die("No checks defined in configuration") unless $config->{check};
+        $self->nagios_die("No configuration given") unless $config;
+        $self->nagios_die("No checks defined in configuration") unless $config->{check};
         
         my $check_configs;
         unless ($config->{check}->{$check}) {
@@ -307,7 +309,7 @@ sub _extract_checks {
             $check_configs = ref($check_config) eq "ARRAY" ? $check_config : [ $check_config ];
             $check_configs->[0]->{key} = $check;
         }
-        $np->nagios_die("No check configuration with name " . $check . " found") unless (@{$check_configs});
+        $self->nagios_die("No check configuration with name " . $check . " found") unless (@{$check_configs});
 
         # Resolve parent values
         for my $c (@{$check_configs}) {
@@ -319,7 +321,7 @@ sub _extract_checks {
             for my $k (keys(%$c)) {
                 $c->{$k} = $self->_replace_placeholder($c->{$k},undef) unless ref($c->{$k});
             }
-            #print "[C] ",Dumper($c);
+            # print "[C] ",Dumper($c);
         }
         return $check_configs;
     } else {
@@ -347,8 +349,9 @@ sub _resolve_multicheck {
                     my $args_merged = $self->_merge_multicheck_args($c_args,$args);
                     # We need a copy of the check hash to avoid mangling it up
                     # if it is referenced multiple times
-                    my $check = { %{$config->{check}->{$c_name}} } ||
-                      $np->nagios_die("Unknown check '" . $c_name . "' for multi check " . $check);
+                    $self->nagios_die("Unknown check '" . $c_name . "' for multi check " . $check) 
+                      unless defined($config->{check}->{$c_name});
+                    my $check = { %{$config->{check}->{$c_name}} };
                     $check->{key} = $c_name;
                     $check->{args} = $args_merged;
                     push @{$check_config},$check;
@@ -359,7 +362,7 @@ sub _resolve_multicheck {
                 for my $name (@$mc_names) {                    
                     my ($mc_name,$mc_args) = $self->_parse_check_ref($name);
                     my $args_merged = $self->_merge_multicheck_args($mc_args,$args);
-                    $np->nagios_die("Unknown multi check '" . $mc_name . "'")
+                    $self->nagios_die("Unknown multi check '" . $mc_name . "'")
                       unless $multi_checks->{$mc_name};
                     push @{$check_config},@{$self->_resolve_multicheck($config,$mc_name,$args_merged)};
                 }
@@ -406,12 +409,14 @@ sub _resolve_check_config {
         my $parent_merged = {};
         for my $p (@$parents) {
             my ($p_name,$p_args) = $self->_parse_check_ref($p);
-            $np->nagios_die("Unknown parent check '" . $p_name . "' for check '" . 
+            $self->nagios_die("Unknown parent check '" . $p_name . "' for check '" . 
                             ($check->{key} ? $check->{key} : $check->{name}) . "'") 
               unless $config->{check}->{$p_name};
             # Clone it to avoid side effects when replacing checks inline
             my $p_check = { %{$config->{check}->{$p_name}} };
             $p_check->{key} = $p_name;
+#            print "::::: ",Dumper($p_check,$p_args);
+
             $self->_resolve_check_config($p_check,$config,$p_args);
 
             #$self->_replace_args($p_check,$config,$p_args);
@@ -428,6 +433,7 @@ sub _resolve_check_config {
         }
     }
     $self->_replace_args($check,$config,$args);
+    #print Dumper($check);
     return $check;
 }
 
@@ -437,57 +443,54 @@ sub _replace_args {
     my $check = shift;
     my $config = shift;
     my $args = shift;
-
     for my $k (keys(%$check)) {
         next if $k =~ /^(key|args)$/; # Internal keys
-        my $val = $check->{$k};
-        if ($args && @$args) {
-            for my $i (0 ... $#$args) {
-                my $repl = $args->[$i];
-                $val = $self->_replace_placeholder($val,$repl,$i) unless ref($val);
-            }
-        } 
-        $check->{$k} = $val;
+        $check->{$k} = 
+          $self->_replace_placeholder($check->{$k},$args)
+            if ($args && @$args && !ref($check->{$k}));
     }
 }
 
 sub _replace_placeholder {
     my $self = shift;
     my $val = shift;
-    my $repl = shift;
-    my $index = shift;
-    my $force = 0;
-    if (!defined($index)) {
-        # We have to replace any left over placeholder either with its 
-        # default value or with an empty value
-        $index = "\\d+";
-        $force = 1;
-    }
+    my $args = shift;
+
+    my $index = defined($args) ? join "|",0 ... $#$args : "\\d+";
+
     my $regexp;
-    eval '$regexp = qr/^(.*?)\$(' . $index . '|\{\s*' . $index . '\s*:([^\}]+)\})(.*|$)/';
+    eval '$regexp = qr/^(.*?)\$((' . $index . ')|\{\s*(' . $index . ')\s*:([^\}]+)\})(.*|$)/';
     die "Cannot create placeholder regexp" if $@;
     my $rest = $val;
     my $ret = "";
     while (defined($rest) && length($rest) && $rest =~ /$regexp/) {        
-        my $default = $3;
         my $start = defined($1) ? $1 : "";
         my $orig_val = '$' . $2;
-        my $end = defined($4) ? $4 : "";
-        #print Dumper({start => $start, orig => $orig_val,end => $end, default => $default, rest => $rest});
-        if (defined($repl)) {
-            if ($repl =~ /^\$(\d+)$/) {
-                my $new_index = $1;
-                #print "============== $val $new_index\n";
-                # Val is a placeholder itself
-                if (defined($default)) {
-                    $ret .= $start . '${' . $new_index . ':' . $default . '}';
-                } else {
-                    $ret .= $start . '$' . $new_index;
+        my $i = defined($3) ? $3 : $4;
+        my $default = $5;
+        my $end = defined($6) ? $6 : "";
+        #print Dumper({start => $start, orig => $orig_val,end => $end, default=> $default, rest => $rest, i => $i}); 
+        if (defined($args)) {
+            my $repl = $args->[$i];            
+            if (defined($repl)) { 
+                if ($repl =~ /^\$(\d+)$/) {
+                    my $new_index = $1;
+                    #print "============== $val $new_index\n";
+                    # Val is a placeholder itself
+                    if (defined($default)) {
+                        $ret .= $start . '${' . $new_index . ':' . $default . '}';
+                    } else {
+                        $ret .= $start . '$' . $new_index;
+                    }
+                } else {   
+                    $ret .= $start . $repl;
                 }
-            } else {   
-                $ret .= $start . $repl;
+            } else {
+                $ret .= $start . $orig_val;
             }
-        } elsif ($force) {
+        } else {
+            # We have to replace any left over placeholder either with its 
+            # default value or with an empty value
             if (defined($default)) {
                 $ret .= $start . $default;
             } elsif (length($start) || length($end)) {
@@ -499,8 +502,6 @@ sub _replace_placeholder {
                     return undef;
                 }
             }
-        } else {
-            $ret .= $start . $orig_val;
         }
         $rest = $end;
         #print "... $ret$rest\n";
@@ -527,7 +528,7 @@ sub _get_config {
     my $self = shift;
     my $path = shift;
     my $np = $self->{np};
-    $np->nagios_die("No configuration file " . $path . " found")
+    $self->nagios_die("No configuration file " . $path . " found")
       if ($path && ! -e $path);
     return new JMX::Jmx4Perl::Config($path);
 }
@@ -694,6 +695,10 @@ sub add_nagios_np_args {
                  spec => "label|l=s",
                  help => "Label to be used for printing out the result of the check. Placeholders can be used."
                 );
+    $np->add_arg(
+                 spec => "unknown-is-critical",
+                 help => "Map UNKNOWN errors to errors with a CRITICAL status"
+                );
 }
 
 # Access to configuration informations
@@ -768,8 +773,16 @@ sub AUTOLOAD {
             return undef;
         }
     } else {
-        $np->nagios_die("No config attribute \"" . $name . "\" known");
+        $self->nagios_die("No config attribute \"" . $name . "\" known");
     }
+}
+
+sub nagios_die {
+    my $self = shift;
+    my @args = @_;
+    
+    my $np = $self->{np};
+    $np->nagios_die(join("",@args),$np->opts->{'unknown-is-critical'} ? CRITICAL : UNKNOWN)
 }
 
 # Declared here to avoid AUTOLOAD confusions
