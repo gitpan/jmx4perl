@@ -44,22 +44,21 @@ It uses a traditional request-response paradigma for performing JMX operations
 on a remote Java Virtual machine. 
 
 There a various ways how JMX information can be transfered. Jmx4Perl is based
-on an I<agent>, a Java Servlet, which needs to deployed on a
-Java application server. It plays the role of a proxy, which on one side
-communicates with the MBeanServer within in the application server and
-transfers JMX related information via HTTP and JSON to the client (i.e. this
-module). Please refer to L<JMX::Jmx4Perl::Manual> for installation instructions
-for how to deploy the agent servlet (which can be found in the distribution as
-F<agent/j4p.war>).
+on a Jolokia I<agent> (www.jolokia.org), which needs to deployed on the target
+platform. It plays the role of a proxy, which on one side communicates with the
+MBeanServer within in the application server and transfers JMX related
+information via HTTP and JSON to the client (i.e. this module). Please refer to
+L<JMX::Jmx4Perl::Manual> for installation instructions for how to deploy the
+Jolokia agent.
 
 An alternative and more 'java like' approach is the usage of JSR 160
 connectors. However, the default connectors provided by the Java Virtual
 Machine (JVM) since version 1.5 support only proprietary protocols which
 require serialized Java objects to be exchanged. This implies that a JVM needs
-to be started on the client side adding quite some overhead if used from
-within Perl. Nevertheless plans are underway to support this operational mode
-as well, which allows for monitoring Java applications which are not running
-in a servlet container.
+to be started on the client side adding quite some overhead if used from within
+Perl. If you absolutely require JSR 160 communication (e.g. because a agent can
+not be deployed on the target for some reason), you can still use Jmx4Perl
+operating with the so called I<proxy mode>.
 
 For further discussion comparing both approaches, please refer to
 L<JMX::Jmx4Perl::Manual> 
@@ -102,7 +101,7 @@ use vars qw($VERSION $HANDLER_BASE_PACKAGE @PRODUCT_HANDLER_ORDERING);
 use Data::Dumper;
 use Module::Find;
 
-$VERSION = "0.92";
+$VERSION = "0.95_1";
 
 my $REGISTRY = {
                 # Agent based
@@ -179,6 +178,15 @@ provide this argument only if you use B<jmx4perl>'s alias feature and if you
 want to speed up things (autodetection can be quite slow since this requires
 several JMX request to detect product specific MBean attributes).
 
+=item timeout
+
+Timeout in seconds for an HTTP request
+
+=item method
+
+Default HTTP method to use for requests which can be overridden for each
+specific request
+
 =back
 
 Any other named parameters are interpreted by the backend, please
@@ -199,7 +207,7 @@ sub new {
         }
     }
     
-    my $mode = delete $cfg->{mode} || &autodiscover_mode();
+    my $mode = delete $cfg->{mode} || autodiscover_mode();
     my $product = $cfg->{product} ? lc delete $cfg->{product} : undef;
 
     $class = $REGISTRY->{$mode} || croak "Unknown runtime mode " . $mode;
@@ -373,9 +381,9 @@ sub get_attribute {
         $response = $self->delegate_to_handler($object);                
     } else {
         #croak "No attribute provided for object $object" unless $attribute;        
-        my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);
+        my $request = JMX::Jmx4Perl::Request->new(READ,$object,$attribute,$path);        
         $response = $self->request($request);
-        #print Dumper($response);
+#        print Dumper($response);
     }
     if ($response->is_error) {
         my $a = ref($attribute) eq "ARRAY" ? "[" . join(",",@$attribute) . "]" : $attribute;
@@ -491,7 +499,8 @@ sub search {
     if ($response->is_error) {
         die "Error searching for $pattern: ",$response->error_text;
     }
-    return ref($response->value) eq "ARRAY" ? $response->value : undef;    
+    my $val = $response->value;
+    return ref($val) eq "ARRAY" && @$val ? $val : undef;
 }
 
 =item   $ret = $jmx->execute(...)
@@ -892,7 +901,9 @@ sub _extract_execute_parameters {
     my $self = shift;
     my @args = @_;
     my ($mbean,$operation,$op_args);
-    if (ref($args[0]) eq "HASH") {
+    if (ref($args[0] eq "JMX::Jmx4Perl::Request")) {
+        die 'Use $j4p->request(), not $j4p->execute() for executing a JMX::Jmx4Perl::Request',"\n";
+    } elsif (ref($args[0]) eq "HASH") {
         my $args = $args[0];
         if ($args->{alias}) {
             ($mbean,$operation) = $self->resolve_alias($args->{alias});
@@ -1041,7 +1052,7 @@ sub _format_attr_or_op {
         $p = shift @$path;
         if ($p) {
             $ret .= " ".$p."\n";
-            return &$format_sub($ret,$p,$map->{$p},$level);
+            return $format_sub->($ret,$p,$map->{$p},$level);
         } else {
             $ret .= " $label:\n";
         }
@@ -1049,7 +1060,7 @@ sub _format_attr_or_op {
         $ret .= &_get_space($level)."$label:\n";
     }
     for my $key (keys %$map) {
-        $ret = &$format_sub($ret,$key,$map->{$key},$level+1);
+        $ret = $format_sub->($ret,$key,$map->{$key},$level+1);
     }
     return $ret;
 }
