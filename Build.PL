@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-use Module::Build 0.34;
+use Module::Build 0.38;
 use strict;
 use Data::Dumper;
 
@@ -111,7 +111,7 @@ $answer = y_n($msg,"y");
 
 if ($answer) {
     add_reqs(
-              "Getopt::Long" => "2.38",  # req, GetOptionsFromArray must be exported
+              "Getopt::Long" => 0,  # req, GetOptionsFromArray must be exported
               "Term::ShellUI" => 0,      # req
               "Term::Clui" => 0,         # req 
               "Term::Size" => "0.207",   # opt 
