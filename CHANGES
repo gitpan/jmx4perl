@@ -1,3 +1,6 @@
+1.03 (2011-11-23)
+  - Fixed stupid last minute bug.
+
 1.02 (2011-11-23)
   - Fix for threshold with 0 value in check_jmx4perl
   - Fix automatic detection of the largest version number for Jolokia

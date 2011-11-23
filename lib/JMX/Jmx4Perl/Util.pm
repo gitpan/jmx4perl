@@ -120,4 +120,6 @@ sub _canonicalize_value {
 
 =back 
 
+=cut
+
 1;
