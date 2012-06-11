@@ -17,9 +17,9 @@ Hash: SHA1
 SHA1 71de1ccb19763c2e6960d089cb0ef07458f36cd1 Build.PL
 SHA1 0f9ce390ea23b523c2dacb6ba9051642b1d8cbc0 CHANGES
 SHA1 c8687c95995b52c206d5926b4cd4abfdd3200887 LICENSE
-SHA1 22c18115c1dcd231eb0f16f05012986b92eeb6f2 MANIFEST
+SHA1 6ede9aa359283279582cf1d1cc9dc08e3df3a4b4 MANIFEST
 SHA1 bb8cb39486d59e0247411bc6bbda98818a6c2593 META.json
-SHA1 115fcbc5bc0d26c68da4818c0178878a42a2efba META.yml
+SHA1 2d77bdca17e38ae82dacbdd66d62f01c33f36a24 META.yml
 SHA1 73937eae74e3b5872afcc9a9311a63e925a9114f README
 SHA1 1293d955fab938aabfa3a08804e019425fcd84a7 config/common.cfg
 SHA1 1f0c00440895ded30b262146de84d4c614c11bc4 config/jboss.cfg
@@ -27,6 +27,7 @@ SHA1 03a45a425166dc7b5cee93cc9b59d0532332ecc3 config/jetty.cfg
 SHA1 b783ba8830bc903a7ac467278eddb0e97baf5ddb config/memory.cfg
 SHA1 97e224477f935577d1f465b7aed8102cd0e2ba3f config/threads.cfg
 SHA1 6af68379f0429c72cca314c4a2176d3f3c7fc760 config/tomcat.cfg
+SHA1 803d9834d72d355521a1b22e268533df7a57a0d3 config/weblogic.cfg
 SHA1 b06c34e2d6ad6ef7743c0d1cfc9e9a6aaeb3e88c examples/jsr77.pl
 SHA1 4fe1fd0235330078a190e1be17664585b5be0456 examples/memory.pl
 SHA1 a5835abdd82b454935cbbd3e0b378e9ee945317c examples/memory.sh
@@ -86,7 +87,7 @@ SHA1 e3287c9988b55ee7e54a5e5477d2b12486b1da87 it/t/80_read.t
 SHA1 15bc4bdfe085ecdaae73639aed33eb904d31eea4 it/t/85_path_escaping.t
 SHA1 2da7577b853fd46e72a1e8e38e3c2061e6908b07 it/t/90_search.t
 SHA1 c5ee19df0210e644f622e1c5f44cbe685d8a46c7 it/t/95_cors.t
-SHA1 e4d432bf3b3c9816c91b7f4251bbe3231c94c2c1 lib/JMX/Jmx4Perl.pm
+SHA1 3561dde633bf22ed47af8b5cec76312367e03624 lib/JMX/Jmx4Perl.pm
 SHA1 bf1d2d7524376c24d7be6906050c369f236cd067 lib/JMX/Jmx4Perl/Agent.pm
 SHA1 50d56c63534075ab3043e89f7b708965b0cf0240 lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
 SHA1 54601c8245411eec3ab7378cfbd7b249ade6a7b1 lib/JMX/Jmx4Perl/Agent/Jolokia/DownloadAgent.pm
@@ -155,9 +156,9 @@ SHA1 7dfbae1265b70a3c56ef1e1af64ef7549aa7b976 t/lib/ProductTest/Test2Handler.pm
 Version: GnuPG/MacGPG2 v2.0.17 (Darwin)
 Comment: GPGTools - http://gpgtools.org
 
-iQCVAwUBT9WrrUKyJpPvEBFlAQLzQAP/UBkD1onZJhy521ZyAF+iVKjfVVE86gVo
-nq2wpQ6R94ovKsJpWb9c62jhqa7J5/OMxK6is1hWKflxsm26XegeYZClUObkAg4/
-z5nrhUxaK2fhrOQCgVt4b9GbfqEOlu+Sdd3hmme9U0+6PNZMpUF62wk+4dEd9cPH
-XC8pLv1K4cQ=
-=ZCZM
+iQCVAwUBT9WuiEKyJpPvEBFlAQKOUgP/Uz55i53B4o002IrIWak3pXCZkZv29c8m
+/Qo4J37e7bMV7MMKPiamBL/2qsh3RyjFhSPAd8kFU6gwPTitj4rEXLdJpKx6jcrC
+B8/DvUdjWvyo451U2opZ7dSm7TCldivZk238KFiYGL1Xx5NdcmfKTA28HX0xxvI5
+ps/f8cH7zrc=
+=evsi
 -----END PGP SIGNATURE-----
