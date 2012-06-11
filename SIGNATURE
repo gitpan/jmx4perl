@@ -15,12 +15,12 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 71de1ccb19763c2e6960d089cb0ef07458f36cd1 Build.PL
-SHA1 9d38fdd3a56cddf9122644a7146e0d85fc602688 CHANGES
+SHA1 0f9ce390ea23b523c2dacb6ba9051642b1d8cbc0 CHANGES
 SHA1 c8687c95995b52c206d5926b4cd4abfdd3200887 LICENSE
 SHA1 22c18115c1dcd231eb0f16f05012986b92eeb6f2 MANIFEST
 SHA1 bb8cb39486d59e0247411bc6bbda98818a6c2593 META.json
-SHA1 be856dc37ed4ad180677a4f541abb5aea0823dd6 META.yml
-SHA1 63e78ee0bcfa663544ff4b794a262d471f62d1e0 README
+SHA1 115fcbc5bc0d26c68da4818c0178878a42a2efba META.yml
+SHA1 73937eae74e3b5872afcc9a9311a63e925a9114f README
 SHA1 1293d955fab938aabfa3a08804e019425fcd84a7 config/common.cfg
 SHA1 1f0c00440895ded30b262146de84d4c614c11bc4 config/jboss.cfg
 SHA1 03a45a425166dc7b5cee93cc9b59d0532332ecc3 config/jetty.cfg
@@ -63,7 +63,7 @@ SHA1 f738334a6ad01d25cd472c0f1525284e7c4edd80 inc/Module-Build/Module/Build/Vers
 SHA1 ec3f32d9acbcf05285a37b722c258694621a377a inc/Module-Build/Module/Build/YAML.pm
 SHA1 39c740559f2d95ac3dcd2af0d91d5458e16ef141 it/check_jmx4perl/base.cfg
 SHA1 d61e4c888b4b40e77009caf72c39dd7d682bb2ba it/check_jmx4perl/base.pl
-SHA1 b9844708bc8a8617b523c095163dc7c81ecec1ac it/check_jmx4perl/checks.cfg
+SHA1 d25e18d4f5df73d934026448b61435cbb0e48d0a it/check_jmx4perl/checks.cfg
 SHA1 ee18b44a2f0c39868999f195dea831733b7238ca it/check_jmx4perl/multi_check.cfg
 SHA1 99cb8c3f483b56fe8e13539772020588b597261b it/it.pl
 SHA1 eb63064ad781938533005dbde057f9009b1705a1 it/t/01_version.t
@@ -77,7 +77,7 @@ SHA1 057b594ca0349b3c6ce9f9c8b89ae2acf4bf341c it/t/53_check_non_numeric.t
 SHA1 fee5b94c93bdf7e13c7fa24eb63dc08ef905e00a it/t/54_check_unit.t
 SHA1 42ce8ede41cadd036d579e9382427e114cc936b5 it/t/55_check_incremental.t
 SHA1 9cb7cf594d01c46354c6f6554d0dc525a4cf8c41 it/t/56_check_value.t
-SHA1 5947a6d05e7e2e2aaca28f2e576197eb89e67eb6 it/t/57_check_config.t
+SHA1 df8635c247b453fb999286bb82716e888f012275 it/t/57_check_config.t
 SHA1 0e13aa925be8e57577165805dad0e07c6d4bddea it/t/58_check_multi_config.t
 SHA1 7a510748e54e15a158811b2e03e026f85a11ffc6 it/t/59_check_timeout.t
 SHA1 98388b48061af9b55a26a765a6b22e26489fbbbd it/t/60_bulk_request.t
@@ -86,7 +86,7 @@ SHA1 e3287c9988b55ee7e54a5e5477d2b12486b1da87 it/t/80_read.t
 SHA1 15bc4bdfe085ecdaae73639aed33eb904d31eea4 it/t/85_path_escaping.t
 SHA1 2da7577b853fd46e72a1e8e38e3c2061e6908b07 it/t/90_search.t
 SHA1 c5ee19df0210e644f622e1c5f44cbe685d8a46c7 it/t/95_cors.t
-SHA1 65c829c3694d3c902204e4144ef2d6a41ed7a6b3 lib/JMX/Jmx4Perl.pm
+SHA1 e4d432bf3b3c9816c91b7f4251bbe3231c94c2c1 lib/JMX/Jmx4Perl.pm
 SHA1 bf1d2d7524376c24d7be6906050c369f236cd067 lib/JMX/Jmx4Perl/Agent.pm
 SHA1 50d56c63534075ab3043e89f7b708965b0cf0240 lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
 SHA1 54601c8245411eec3ab7378cfbd7b249ade6a7b1 lib/JMX/Jmx4Perl/Agent/Jolokia/DownloadAgent.pm
@@ -115,8 +115,8 @@ SHA1 f2ce282cd489f0222028354d79df65b9503f7ca8 lib/JMX/Jmx4Perl/J4psh/ServerHandl
 SHA1 5cb83a0fbea89f81784d68788f138433537f0d72 lib/JMX/Jmx4Perl/J4psh/Shell.pm
 SHA1 2a8bc61e0d275f84ad55cdd92d0580cba71c53d6 lib/JMX/Jmx4Perl/Manual.pod
 SHA1 9543a64106a851f172df8bd121aecef56553b9dd lib/JMX/Jmx4Perl/Nagios/CactiJmx4Perl.pm
-SHA1 ba613416b33e49298e84a15d66858bf6e2fa309c lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
-SHA1 f2695d1cf1e84ef622ad446f13693ac49b1aeae6 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
+SHA1 f76fd25160b35953e5b18fb936bdeefd43884185 lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
+SHA1 e17b38fed85f02f032ff0cd2a1f360908d10a03c lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
 SHA1 999e651ec2674df085829d3f61a1bba2b3fecd58 lib/JMX/Jmx4Perl/Product/ActiveMQ.pm
 SHA1 f87f1d2e7ed105b34ef386d2cb4645367465bb55 lib/JMX/Jmx4Perl/Product/BaseHandler.pm
 SHA1 af4733aec45378e74f443ad31cd1fad6f208fa78 lib/JMX/Jmx4Perl/Product/Geronimo.pm
@@ -155,9 +155,9 @@ SHA1 7dfbae1265b70a3c56ef1e1af64ef7549aa7b976 t/lib/ProductTest/Test2Handler.pm
 Version: GnuPG/MacGPG2 v2.0.17 (Darwin)
 Comment: GPGTools - http://gpgtools.org
 
-iQCVAwUBT5QnkkKyJpPvEBFlAQII2wP+JCMZsSr2luO4vq9kZnpddkdAsvwoKFOk
-yUas008Fwu5CW5cwyMmsYcRwCB2BBXaQnKY12Qy+pHtMZj0W7FsKyPPFkHrS/JD4
-x/lO8hr81M8j0GsL2U3fYEhX6MWMBxxz+c5m3F4s7qTgLjbyi9GSxo3jexR5wfe1
-VkR3fsPCISM=
-=OdfQ
+iQCVAwUBT9WrrUKyJpPvEBFlAQLzQAP/UBkD1onZJhy521ZyAF+iVKjfVVE86gVo
+nq2wpQ6R94ovKsJpWb9c62jhqa7J5/OMxK6is1hWKflxsm26XegeYZClUObkAg4/
+z5nrhUxaK2fhrOQCgVt4b9GbfqEOlu+Sdd3hmme9U0+6PNZMpUF62wk+4dEd9cPH
+XC8pLv1K4cQ=
+=ZCZM
 -----END PGP SIGNATURE-----
