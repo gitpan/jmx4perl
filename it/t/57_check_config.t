@@ -43,10 +43,6 @@ ok($content =~ /default_name/,"OuterArg not-replaced");
 # ===========================================================================
 # No default value
 
-($ret,$content) = exec_check_perl4jmx("--config $config_file --check thread_count"); 
-is($ret,3,"No threshold given");
-ok($content =~ /critical/i,"No threshold given");
-
 ($ret,$content) = exec_check_perl4jmx("--config $config_file --check def_placeholder_1"); 
 is($ret,1,"WARNING");
 ok($content =~ /warning/i,"Warning expected");
@@ -93,5 +89,19 @@ is($ret,0);
 ok($content =~ /Perm/,"Multi-Script-Check: Perm contained");
 ok($content =~ /Eden/,"Multi-Script-Check: Eden contained");
 ok($content =~ /thread_count/,"Multi-Script-Check: Thread_count contained");
+
+# ===========================================================================
+# Double values 
+
+($ret,$content) = exec_check_perl4jmx("--config $config_file --check double_min"); 
+$content =~ /double_min=(.*?);/;
+my $min = $1;
+#print Dumper($min,$ret ,$content,$1);
+is($min,"0.000000","Small double numbers are converted to floasts");
+
+# ===========================================================================
+# Without Thresholds
+
+($ret,$content) = exec_check_perl4jmx("--config $config_file --check without_threshold");
 
 #print Dumper($content);

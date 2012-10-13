@@ -156,7 +156,7 @@ sub _prepare_multicheck_message {
     my $summary;
     my $nr_checks = scalar(@{$self->{checks}});
     if ($code eq OK) {
-        $summary = "All " . $nr_checks . " checks OK";            
+        $summary = "All " . $nr_checks . " checks OK";
     } else {
         my $nr_warnings = scalar(@{$np->messages->{warning} || []});
         my $nr_errors = scalar(@{$np->messages->{critical} || []});
@@ -175,7 +175,7 @@ sub _prepare_multicheck_message {
         }
         $summary = $nr . " of " . $nr_checks . " failed: " . $extra;
     }
-    return ($code,$summary . "\n" . $message);    
+    return ($code,$summary . "\n" . $message);
 }
 
 # Create a formatted prefix for multicheck output
@@ -339,8 +339,6 @@ sub verify_check {
     my $check = shift;
     my $name = shift;
     my $np = $self->{np};
-    $self->nagios_die("At least a critical or warning threshold must be given " . $name) 
-      if ((!defined($check->critical) && !defined($check->warning)));        
 }
 
 # Extract one or more check configurations which can be 
@@ -527,7 +525,13 @@ EOP
     die "Cannot create placeholder regexp" if $@;
     my $rest = $val;
     my $ret = "";
-    while (defined($rest) && length($rest) && $rest =~ $regexp) {        
+    while (defined($rest) && length($rest) && $rest =~ $regexp) {  
+        # $1: start with no placeholder
+        # $2: literal variable as it is defined
+        # $3: variable name (0,1,2,3,...)
+        # $4: same as $3, but either $3 or $4 is defined
+        # $5: default value (if any)
+        # $6: rest which is processed next in the loop
         my $start = defined($1) ? $1 : "";
         my $orig_val = '$' . $2;
         my $i = defined($3) ? $3 : $4;
@@ -563,7 +567,7 @@ EOP
             } else {
                 if (!length($ret)) {
                     # No default value, nothing else for this value. We
-                    # consider at undefined
+                    # consider it undefined
                     return undef;
                 }
             }
@@ -827,7 +831,7 @@ sub AUTOLOAD {
     my $opts_name = $name;
     $opts_name =~ s/_/-/;
 
-    if ($SERVER_CONFIG_KEYS->{$name}) {        
+    if ($SERVER_CONFIG_KEYS->{$name}) {
         return $np->opts->{$opts_name} if $np->opts->{$opts_name};
         my $c = $SERVER_CONFIG_KEYS->{$name};
         if ($c) {
@@ -851,7 +855,7 @@ sub AUTOLOAD {
 sub nagios_die {
     my $self = shift;
     my @args = @_;
-    
+
     my $np = $self->{np};
     $np->nagios_die(join("",@args),$np->opts->{'unknown-is-critical'} ? CRITICAL : UNKNOWN)
 }
