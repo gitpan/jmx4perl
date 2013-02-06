@@ -4,9 +4,9 @@
       "Roland Huss (roland@cpan.org)"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4, CPAN::Meta::Converter version 2.110580",
+   "generated_by" : "Module::Build version 0.3901, CPAN::Meta::Converter version 2.120630",
    "license" : [
-      "gpl_1"
+      "open_source"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -17,7 +17,7 @@
       "build" : {
          "requires" : {
             "Module::Build" : "0.34",
-            "Test::More" : 0
+            "Test::More" : "0"
          }
       },
       "configure" : {
@@ -27,43 +27,44 @@
       },
       "runtime" : {
          "requires" : {
-            "Archive::Zip" : 0,
-            "Carp" : 0,
-            "Config::General" : 0,
-            "Crypt::Blowfish_PP" : 0,
-            "Data::Dumper" : 0,
-            "Digest::MD5" : 0,
-            "Digest::SHA1" : 0,
-            "File::SearchPath" : 0,
-            "File::Temp" : 0,
-            "Getopt::Long" : 0,
+            "Archive::Zip" : "0",
+            "Carp" : "0",
+            "Config::General" : "2.34",
+            "Crypt::Blowfish_PP" : "0",
+            "Data::Dumper" : "0",
+            "Digest::MD5" : "0",
+            "Digest::SHA1" : "0",
+            "File::SearchPath" : "0",
+            "File::Temp" : "0",
+            "Getopt::Long" : "0",
             "JSON" : "2.12",
-            "LWP::UserAgent" : 0,
-            "Module::Find" : 0,
+            "LWP::UserAgent" : "0",
+            "Module::Find" : "0",
             "Nagios::Plugin" : "0.27",
-            "Pod::Usage" : 0,
-            "Scalar::Util" : 0,
-            "Term::Clui" : 0,
-            "Term::ProgressBar" : 0,
-            "Term::ShellUI" : 0,
+            "Pod::Usage" : "0",
+            "Scalar::Util" : "0",
+            "Sys::SigAction" : "0",
+            "Term::Clui" : "0",
+            "Term::ProgressBar" : "0",
+            "Term::ShellUI" : "0",
             "Term::Size" : "0.207",
-            "Text::ParseWords" : 0,
-            "Time::HiRes" : 0,
+            "Text::ParseWords" : "0",
+            "Time::HiRes" : "0",
             "URI" : "1.35",
-            "XML::LibXML" : 0,
-            "XML::Twig" : 0,
-            "base" : 0
+            "XML::LibXML" : "0",
+            "XML::Twig" : "0",
+            "base" : "0"
          }
       }
    },
    "provides" : {
       "JMX::Jmx4Perl" : {
          "file" : "lib/JMX/Jmx4Perl.pm",
-         "version" : "1.05"
+         "version" : "1.07_1"
       },
       "JMX::Jmx4Perl::Agent" : {
          "file" : "lib/JMX/Jmx4Perl/Agent.pm",
-         "version" : 0
+         "version" : "0"
       },
       "JMX::Jmx4Perl::Agent::Jolokia::ArtifactHandler" : {
          "file" : "lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm",
@@ -254,11 +255,11 @@
          "version" : 0
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "license" : [
-         "http://www.gnu.org/licenses/old-licenses/gpl-1.0.txt"
+         "http://opensource.org/licenses/gpl-license.php"
       ]
    },
-   "version" : "1.05"
+   "version" : "1.07_1"
 }
