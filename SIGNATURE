@@ -15,11 +15,11 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 efb6ef8124d45ba3bc71937e49e8c1f3126b7167 Build.PL
-SHA1 b5fac0884f9ddc5fa3bf43ad8c91a3bc3e40c37e CHANGES
+SHA1 bf11c279098f180c44dac105b87d45d346b1354c CHANGES
 SHA1 c8687c95995b52c206d5926b4cd4abfdd3200887 LICENSE
-SHA1 64c1f95bc02075233a752ac80803586f7e5206c8 MANIFEST
-SHA1 0b7ad42de6e83e2dcf141cc648cfab0f1f3e1328 META.json
-SHA1 24a7d5045be01f7fa5a42224e8f7f42c256ffe6f META.yml
+SHA1 8d6c568ef3aca62f486fd13ff9d3cb9351645169 MANIFEST
+SHA1 5bb1b8d05f4dada19abadb96b41628e6220d0bb6 META.json
+SHA1 803d97edf7322339e8a9a9191b7986c47dcf6656 META.yml
 SHA1 73937eae74e3b5872afcc9a9311a63e925a9114f README
 SHA1 1293d955fab938aabfa3a08804e019425fcd84a7 config/common.cfg
 SHA1 c2648e1e3b4c52f77052d30713021685a5f8f464 config/glassfish.cfg
@@ -66,37 +66,39 @@ SHA1 f738334a6ad01d25cd472c0f1525284e7c4edd80 inc/Module-Build/Module/Build/Vers
 SHA1 ec3f32d9acbcf05285a37b722c258694621a377a inc/Module-Build/Module/Build/YAML.pm
 SHA1 39c740559f2d95ac3dcd2af0d91d5458e16ef141 it/check_jmx4perl/base.cfg
 SHA1 d61e4c888b4b40e77009caf72c39dd7d682bb2ba it/check_jmx4perl/base.pl
-SHA1 d75aa657624a89d5bda27fe38688667a5f1fd267 it/check_jmx4perl/checks.cfg
-SHA1 d8762941081b90ae5c49bea596a7d07f2564646a it/check_jmx4perl/multi_check.cfg
+SHA1 7024cf6a82db5156249a2dea40f9ba229b725f10 it/check_jmx4perl/checks.cfg
+SHA1 483430f8e91e3fb589be52350df5be9396b3aaf2 it/check_jmx4perl/multi_check.cfg
 SHA1 99cb8c3f483b56fe8e13539772020588b597261b it/it.pl
 SHA1 eb63064ad781938533005dbde057f9009b1705a1 it/t/01_version.t
+SHA1 bd602793b32d553ba388cc6cda49a782243ec1d5 it/t/02_http_header.t
 SHA1 6d401e4209006ac11a44c7b2ed00662db67f322f it/t/10_base.t
 SHA1 a206cbf7619da740414c7cc4b3ad06790900bfac it/t/30_naming.t
 SHA1 488a9828bb3cb03f853ab5c2ee3de81053b629b9 it/t/40_alias.t
 SHA1 6cf6a68a4be6cf1a62d715946481e4f4e317efb8 it/t/50_check_base.t
-SHA1 2a291a004683236cde265112dd26e4f2ece0b900 it/t/51_check_relative.t
+SHA1 e17c51dde65390238905b1960ac563862ce25171 it/t/51_check_relative.t
 SHA1 e9da30cac58fd8dd2f3d8c4befde659fbbcf4b44 it/t/52_check_operation.t
 SHA1 057b594ca0349b3c6ce9f9c8b89ae2acf4bf341c it/t/53_check_non_numeric.t
 SHA1 fee5b94c93bdf7e13c7fa24eb63dc08ef905e00a it/t/54_check_unit.t
-SHA1 afc0d069363dc03c82065257934ddd0866adc0be it/t/55_check_incremental.t
+SHA1 3b8746e709dddd7d65ca4ae063236e2e6db994d5 it/t/55_check_incremental.t
 SHA1 260403ee0fa8805c2c8d2ba540980dadbd7e2c9f it/t/56_check_value.t
-SHA1 f0a88e0b796a827358aff9807c35425349f42735 it/t/57_check_config.t
+SHA1 e9303f6e1dd271a0a23c61850ce4abc015a26bb5 it/t/57_check_config.t
 SHA1 6a372195773ed9b00079d4d1f54c732f229f34b1 it/t/58_check_multi_config.t
 SHA1 1498d7fca477839314bc8a0b0398be087d31adfb it/t/59_check_timeout.t
 SHA1 98388b48061af9b55a26a765a6b22e26489fbbbd it/t/60_bulk_request.t
+SHA1 086d28bb65330f4728c216f2fe44244c9108c226 it/t/64_check_perfdata.t
 SHA1 defd7b61e42c70d1dbce6ddb2cff77a98c163324 it/t/70_overloaded_method.t
-SHA1 7e59c92bcb8c81c54c81e0e096f8e201adc774d7 it/t/80_read.t
-SHA1 7dd6fd444ff4f48930a3cc259d0611630e7ab399 it/t/83_write.t
-SHA1 2f59f827306edf3a982785c9bd30aae8e8a57752 it/t/84_exec.t
+SHA1 cc67e178cfcc79b5338674198fd4f59d7c9e1162 it/t/80_read.t
+SHA1 ae42a3b432bf764c2cf4973afc86489248eae19a it/t/83_write.t
+SHA1 559f1968eece6581c8ed18cc02fad340d758e7ff it/t/84_exec.t
 SHA1 71158019509ce5cd9cf1255cd5f146f65b087cea it/t/85_path_escaping.t
 SHA1 2da7577b853fd46e72a1e8e38e3c2061e6908b07 it/t/90_search.t
 SHA1 3fa673c6f0f1e43fbd63f4e518efe96ba02413f1 it/t/95_cors.t
-SHA1 ae316d1e157054fc1d6430f98c7b6ae520087154 lib/JMX/Jmx4Perl.pm
+SHA1 529acabc1f064d748e8e7e217a61bad7310ebfbd lib/JMX/Jmx4Perl.pm
 SHA1 d5677142b376ca9b1bba861daa0bb7ae2c84ed52 lib/JMX/Jmx4Perl/Agent.pm
-SHA1 50d56c63534075ab3043e89f7b708965b0cf0240 lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
+SHA1 3090e3dbdccd697cedc4ded87e43986c3276f9bd lib/JMX/Jmx4Perl/Agent/Jolokia/ArtifactHandler.pm
 SHA1 54601c8245411eec3ab7378cfbd7b249ade6a7b1 lib/JMX/Jmx4Perl/Agent/Jolokia/DownloadAgent.pm
 SHA1 b9f9ed36dcbcf9e626a589d84c9ccacc8230ea93 lib/JMX/Jmx4Perl/Agent/Jolokia/Logger.pm
-SHA1 dc6b8d8587ff17b481d110a25db41fefb8d6c14f lib/JMX/Jmx4Perl/Agent/Jolokia/Meta.pm
+SHA1 3701e66ede3886b621f0bc490752ee14cdd80e6f lib/JMX/Jmx4Perl/Agent/Jolokia/Meta.pm
 SHA1 54549b050081653d5f305073e9c448bb0a946afd lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier.pm
 SHA1 28a1bc90664694e99e5d8e4ce7dfd4dbac499197 lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/ChecksumVerifier.pm
 SHA1 232352aa610063519ec8e5904509abd75ba0d4cd lib/JMX/Jmx4Perl/Agent/Jolokia/Verifier/GnuPGVerifier.pm
@@ -110,18 +112,18 @@ SHA1 388974f6aa0f266b98e6d051ff6a27509d9ea12a lib/JMX/Jmx4Perl/Alias.pm
 SHA1 1aecc0a8dabd6ca1cb6753b72994a9618a16b6a6 lib/JMX/Jmx4Perl/Alias/Object.pm
 SHA1 1c5f22e5190c56cc8e2a53633c33b19b55234064 lib/JMX/Jmx4Perl/Config.pm
 SHA1 5d9d56969351a838ac78678460fe63f8dd8e26d1 lib/JMX/Jmx4Perl/J4psh.pm
-SHA1 fba40d128f9300ac263f6e4546af341388d4d3c3 lib/JMX/Jmx4Perl/J4psh/Command.pm
+SHA1 77516bb9599118c9635f572e0c26a9aa5bda5b68 lib/JMX/Jmx4Perl/J4psh/Command.pm
 SHA1 32110e3506932f86b0aea6c46eb7f3d23b29ae76 lib/JMX/Jmx4Perl/J4psh/Command/Global.pm
-SHA1 6261f956b57d41cf08ed3e0af16fe79579d09649 lib/JMX/Jmx4Perl/J4psh/Command/MBean.pm
+SHA1 64d4cdaff62c7672c6b5850fe51d1e250e942fef lib/JMX/Jmx4Perl/J4psh/Command/MBean.pm
 SHA1 61b5260e8d6e9a5217fafa77836cc8baa105dde3 lib/JMX/Jmx4Perl/J4psh/Command/Server.pm
 SHA1 ed995a3c170ea9424b4ba7c51a93f408ec520e54 lib/JMX/Jmx4Perl/J4psh/CommandHandler.pm
-SHA1 44e88c1c1bf2d2cc5a26270272df849e2e0a33be lib/JMX/Jmx4Perl/J4psh/CompletionHandler.pm
+SHA1 51d3c92875104e3639a899b6876ecaa0e4efab49 lib/JMX/Jmx4Perl/J4psh/CompletionHandler.pm
 SHA1 f2ce282cd489f0222028354d79df65b9503f7ca8 lib/JMX/Jmx4Perl/J4psh/ServerHandler.pm
-SHA1 5cb83a0fbea89f81784d68788f138433537f0d72 lib/JMX/Jmx4Perl/J4psh/Shell.pm
+SHA1 eba997374af96ce77f14686ce6b37ae7e28e095a lib/JMX/Jmx4Perl/J4psh/Shell.pm
 SHA1 2a8bc61e0d275f84ad55cdd92d0580cba71c53d6 lib/JMX/Jmx4Perl/Manual.pod
 SHA1 9543a64106a851f172df8bd121aecef56553b9dd lib/JMX/Jmx4Perl/Nagios/CactiJmx4Perl.pm
-SHA1 9d73151de2b8b376e30d218492f72879b3aea215 lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
-SHA1 e15cd575f9076042d75b608ff17c493dbde3f7af lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
+SHA1 86e01804a382cc5d679ed0a75c388896d3488a68 lib/JMX/Jmx4Perl/Nagios/CheckJmx4Perl.pm
+SHA1 af58422a656200784f8176414f150608b5e3ca77 lib/JMX/Jmx4Perl/Nagios/SingleCheck.pm
 SHA1 999e651ec2674df085829d3f61a1bba2b3fecd58 lib/JMX/Jmx4Perl/Product/ActiveMQ.pm
 SHA1 f87f1d2e7ed105b34ef386d2cb4645367465bb55 lib/JMX/Jmx4Perl/Product/BaseHandler.pm
 SHA1 af4733aec45378e74f443ad31cd1fad6f208fa78 lib/JMX/Jmx4Perl/Product/Geronimo.pm
@@ -141,10 +143,10 @@ SHA1 b51e9ca04a2ddff050bd52312606a4d52a9e334a lib/JMX/Jmx4Perl/Request.pm
 SHA1 0170fa2a769fb63619649e8bde22395159b1bb6e lib/JMX/Jmx4Perl/Response.pm
 SHA1 70cf9c6987563ab7b5ce64c5097d22bc63ad6a62 lib/JMX/Jmx4Perl/Util.pm
 SHA1 e3571527358bebebcaa7f29c05f0995f20a9855c scripts/cacti_jmx4perl
-SHA1 d168df5dc0b8daac470688aef2d6268e833e6b55 scripts/check_jmx4perl
+SHA1 a340a800601cef4b15f709d6205d5d0017a06b79 scripts/check_jmx4perl
 SHA1 05686acab8a128630d4fe00a3ca7ea14e530ae8c scripts/j4psh
-SHA1 a6826691771f5e9c0a75acaad506286f4a73901d scripts/jmx4perl
-SHA1 c537a903a3502d259f6c761f368031f1efe459a4 scripts/jolokia
+SHA1 0dbbcbc4da7bff85b1de1ca884dd07d80b7edfd4 scripts/jmx4perl
+SHA1 a2bc806ebe327af844bae280264b903019297673 scripts/jolokia
 SHA1 147660596fdc69820e59147fadb857de38545b56 t/10_handler.t
 SHA1 4a8bb19315ab3f09b894d0d3e3833526b2ba747b t/20_alias.t
 SHA1 56eec9d8b9b6e2aee11180102f8145ff74a63c3e t/30_request.t
@@ -153,16 +155,16 @@ SHA1 34c4b74957501c3bcaa75d36c0976b4d745d401b t/50_config.t
 SHA1 2d21e941e2c2fe6285ed464c904df9b7fb649759 t/60_parse_name.t
 SHA1 80827d16a010059986e159dbe6e4c29e313cb524 t/70_pod_syntax.t
 SHA1 58f29a2ce116a173081bcce2402a4ecd93593c00 t/j4p_test.cfg
-SHA1 7ec1cf1daeff5ddb9c7c068cb4688715e217c2cf t/lib/It.pm
+SHA1 d2f311f90fea446d87dc87664a9ae020e7f4c1af t/lib/It.pm
 SHA1 8f44123785800a2f16d2c4868bd50280fc7b0ca7 t/lib/ProductTest/Test1Handler.pm
 SHA1 7dfbae1265b70a3c56ef1e1af64ef7549aa7b976 t/lib/ProductTest/Test2Handler.pm
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG/MacGPG2 v2.0.19 (Darwin)
 Comment: GPGTools - http://gpgtools.org
 
-iQCVAwUBURIjW0KyJpPvEBFlAQL+oQP/Yr18wf33MeIBMwxIKLEtRGNwTlAvs3a/
-QALwjbLd8+a6Vl47zXTwj83PVFy7Rvmajdc+JggbIPF0xGeMz6J6qU9tFAl6RC7f
-cYRhr9YFtkLE0WzPHXSBg+dSZxUHVUKEQKXYTDRMAAoqyroRAAv2qo58uHz/alxg
-N1ZLfVgUl1s=
-=mFgg
+iQCVAwUBUW0edEKyJpPvEBFlAQJ9uQQAoZX7/u2pUXsBUOVLUVkI5m143qaB0/Ai
+i5ygXifS3umkA3Voet7LyVpmGVQfgUOTHH+t7x4KRc+o1fMRpkhV3jOK/zEKQHuU
+12waXGDMcZlzUrrg1Zg5rrabwWnj61PCMI42+4XUx1osjlOczMJBNd46hWFZFJ/5
+BEleZCvQuOs=
+=DLnz
 -----END PGP SIGNATURE-----

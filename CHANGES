@@ -1,6 +1,19 @@
 1.07 
   - Added more robust timeout for the Jmx4Perl Agent (requires Sys::SigAction)
   - SSL Host key verification switched off when connecting via SSL
+  - Fixed issue with quoting in j4psh (#14)
+  - 'cat' in j4psh is now caseinsensitive when using wildcards (#18)
+  - Added BaseMBean, BaseAttribute and BasePath as alternative to Base f
+    or check_jmx4perl (#16)
+  - "jolokia" can do 'repack' and 'info' also when not being connected 
+    to the internet (#20)
+  - Multi-Checks can now reference other Multi-Checks either via <MultiCheck>
+    or <Check> (#19)
+  - Added new option '--perfdata true|false' (PerData false in configuration) for 
+    switching of performance data. Also, for string checks performance data is 
+    switched off always. (#22)
+  - Added %y and %z as placeholder for configured CRITICAL and WARNING thresholds
+    for the output provided with "Label" in check_jmx4perl (#13)
 
 1.06 (2012-10-13)
   - A a scripting mode to check_jmx4perl which allows putting in arbitraty 

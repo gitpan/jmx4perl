@@ -68,7 +68,6 @@ sub get_requests {
     my $self = shift;
     my $jmx = shift;
     my $args = shift;
-
     # If a script is given, extract a subref and return it
     return [ $self->_extract_script_as_subref($jmx) ] if $self->script;
 
@@ -94,14 +93,16 @@ sub get_requests {
     }
     push @requests,$request;
 
-    if ($self->base) {
+    if ($self->base || $self->base_mbean) {
         if (!looks_like_number($self->base)) {
             # It looks like a number, so we will use the base literally
             my $alias = JMX::Jmx4Perl::Alias->by_name($self->base);
             if ($alias) {
                 push @requests,new JMX::Jmx4Perl::Request(READ,$jmx->resolve_alias($self->base));
             } else {
-                my ($mbean,$attr,$path) = $self->_split_attr_spec($self->base);
+                my ($mbean,$attr,$path) = $self->base_mbean ? 
+                  ($self->base_mbean, $self->base_attribute, $self->base_path) : 
+                    $self->_split_attr_spec($self->base);
                 die "No MBean given in base name ",$self->base unless $mbean;
                 die "No Attribute given in base name ",$self->base unless $attr;
                 
@@ -187,17 +188,24 @@ sub extract_responses {
     # Normalize value 
     my ($value_conv,$unit) = $self->_normalize_value($value);
     my $label = $self->_get_name(cleanup => 1);
-    if ($self->base && !$script_mode) {
+    if ( ($self->base || $self->base_mbean) && !$script_mode) {
         # Calc relative value 
         my $base_value = $self->_base_value($self->base,$responses,$requests);
         my $rel_value = sprintf "%2.2f",$base_value ? (int((($value / $base_value) * 10000) + 0.5) / 100) : 0;
                 
         # Performance data. Convert to absolute values before
-        my ($critical,$warning) = $self->_convert_relative_to_absolute($base_value,$self->critical,$self->warning);
-        $np->add_perfdata(label => $label,value => $value,
-                          critical => $critical,warning => $warning,
-                          min => 0,max => $base_value,
-                          $self->unit ? (uom => $self->unit) : ());
+        if ($self->_include_perf_data) {
+            if ($self->perfdata && $self->perfdata =~ /^\s*\%\s*/) {
+                $np->add_perfdata(label => $label, value => $rel_value, uom => '%',
+                                  critical => $self->critical, warning => $self->warning);
+            } else {
+                my ($critical,$warning) = $self->_convert_relative_to_absolute($base_value,$self->critical,$self->warning);
+                $np->add_perfdata(label => $label,value => $value,
+                                  critical => $critical,warning => $warning,
+                                  min => 0,max => $base_value,
+                                  $self->unit ? (uom => $self->unit) : ());
+            }
+        }
         # Do the real check.
         my ($code,$mode) = $self->_check_threshold($rel_value);
         # For Multichecks, we remember the label of a currently failed check
@@ -209,9 +217,11 @@ sub extract_responses {
     } else {
         # Performance data
         $value = $self->_sanitize_value($value);
-        $np->add_perfdata(label => $label,
-                          critical => $self->critical, warning => $self->warning, 
-                          value => $value,$self->unit ? (uom => $self->unit) : ());
+        if ($self->_include_perf_data) {
+            $np->add_perfdata(label => $label,
+                              critical => $self->critical, warning => $self->warning, 
+                              value => $value,$self->unit ? (uom => $self->unit) : ());
+        }
         
         # Do the real check.
         my ($code,$mode) = $self->_check_threshold($value);
@@ -220,6 +230,16 @@ sub extract_responses {
                                                     prefix => $opts->{prefix}));                    
     }
     return @extra_requests;
+}
+
+sub _include_perf_data {
+    my $self = shift;
+    # No perf dara for string based checks by default
+    my $default = not defined($self->string);
+    # If 'PerfData' is set explicitely to false/off/no/0 then no perfdata
+    # will be included
+    return $default unless defined($self->perfdata);
+    return $self->perfdata !~ /^\s*(false|off|no|0)\s*$/i;
 }
 
 sub _update_error_stats {
@@ -639,6 +659,7 @@ sub _format_label {
     # %t : threshold failed ("" for OK or UNKNOWN)
     # %c : code ("OK", "WARNING", "CRITICAL", "UNKNOWN")
     # %d : delta
+    # 
     my @parts = split /(\%[\w\.\-]*\w)/,$label;
     my $ret = "";
     foreach my $p (@parts) {
@@ -654,11 +675,7 @@ sub _format_label {
             } elsif ($what eq "f") {
                 $ret .= sprintf $format . "f",$args->{value};
             } elsif ($what eq "v") {
-                if ($args->{mode} ne "numeric") {
-                    $ret .= sprintf $format . "s",$args->{value};
-                } else {
-                    $ret .= sprintf $format . &_format_char($args->{value}),$args->{value};
-                }
+                $ret .= &_format_value($format,$args->{mode},$args->{value});
             } elsif ($what eq "t") {
                 my $code = $args->{code};
                 my $val = $code == CRITICAL ? $self->critical : ($code == WARNING ? $self->warning : "");
@@ -669,6 +686,10 @@ sub _format_label {
                 $ret .= sprintf $format . "s",$self->_get_name();
             } elsif ($what eq "d") {
                 $ret .= sprintf $format . "d",$self->delta;
+            } elsif ($what eq "y") {
+                $ret .= &_format_value($format,$args->{mode},$self->warning);
+            } elsif ($what eq "z") {
+                $ret .= &_format_value($format,$args->{mode},$self->critical);                
             }
         } else {
             $ret .= $p;
@@ -683,6 +704,16 @@ sub _format_label {
     }
 }
 
+sub _format_value {
+    my $format = shift;
+    my $mode = shift;
+    my $value = shift;
+    if ($mode ne "numeric") {
+        return sprintf $format . "s",$value;
+    } else {
+        return sprintf $format . &_format_char($value),$value;
+    }    
+}
 sub _format_char {
     my $val = shift;
     $val =~ /\./ ? "f" : "d";
@@ -706,14 +737,16 @@ my $CHECK_CONFIG_KEYS = {
                          "delta" => "delta",
                          "name" => "name",
                          "base" => "base",
+                         "base-mbean" => "basembean",
+                         "base-attribute" => "baseattribute",
+                         "base-path" => "basepath",
                          "unit" => "unit",
                          "numeric" => "numeric",
                          "string" => "string",
                          "label" => "label",
-
+                         "perfdata" => "perfdata",
                          "value" => "value",
                          "null" => "null",
-
                          "script" => "script"
                         };
 
@@ -725,7 +758,7 @@ sub AUTOLOAD {
     my $np = $self->{np};
     my $name = $AUTOLOAD;
     $name =~ s/.*://;   # strip fully-qualified portion
-    $name =~ s/-/_/g;
+    $name =~ s/_/-/g;
 
     if ($CHECK_CONFIG_KEYS->{$name}) {
         return $np->opts->{$name} if defined($np->opts->{$name});

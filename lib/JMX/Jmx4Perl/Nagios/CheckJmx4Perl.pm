@@ -393,30 +393,28 @@ sub _resolve_multicheck {
     if ($multi_checks)  {
         my $m_check = $multi_checks->{$check};
         if ($m_check) {
-            if ($m_check->{check}) {
-                # Resolve all checks
-                my $c_names = ref($m_check->{check}) eq "ARRAY" ? $m_check->{check} : [ $m_check->{check} ];
-                for my $name (@$c_names) {
-                    my ($c_name,$c_args) = $self->_parse_check_ref($name);
-                    my $args_merged = $self->_merge_multicheck_args($c_args,$args);
+            # Resolve all checks
+            my $c_names = [];
+            for my $type( qw(check multicheck)) {
+                if ($m_check->{$type}) {
+                    push @$c_names, ref($m_check->{$type}) eq "ARRAY" ? @{$m_check->{$type}} : $m_check->{$type};
+                }
+            }
+            for my $name (@$c_names) {
+                my ($c_name,$c_args) = $self->_parse_check_ref($name);
+                my $args_merged = $self->_merge_multicheck_args($c_args,$args);
+                $self->nagios_die("Unknown check '" . $c_name . "' for multi check " . $check) 
+                  unless defined($config->{check}->{$c_name}) or defined($multi_checks->{$c_name});
+                if ($config->{check}->{$c_name}) {
                     # We need a copy of the check hash to avoid mangling it up
                     # if it is referenced multiple times
-                    $self->nagios_die("Unknown check '" . $c_name . "' for multi check " . $check) 
-                      unless defined($config->{check}->{$c_name});
                     my $check = { %{$config->{check}->{$c_name}} };
                     $check->{key} = $c_name;
                     $check->{args} = $args_merged;
                     push @{$check_config},$check;
-                }
-            }
-            if ($m_check->{multicheck}) {
-                my $mc_names = ref($m_check->{multicheck}) eq "ARRAY" ? $m_check->{multicheck} : [ $m_check->{multicheck} ];
-                for my $name (@$mc_names) {                    
-                    my ($mc_name,$mc_args) = $self->_parse_check_ref($name);
-                    my $args_merged = $self->_merge_multicheck_args($mc_args,$args);
-                    $self->nagios_die("Unknown multi check '" . $mc_name . "'")
-                      unless $multi_checks->{$mc_name};
-                    push @{$check_config},@{$self->_resolve_multicheck($config,$mc_name,$args_merged)};
+                } else {
+                    # It's a multi check referenced via <Check> or <MultiCheck> ....
+                    push @{$check_config},@{$self->_resolve_multicheck($config,$c_name,$args_merged)};
                 }
             }
         }
@@ -737,8 +735,20 @@ sub add_nagios_np_args {
 
     $np->add_arg(
                  spec => "base|base-alias|b=s",
-                 help => "Base alias name, which when given, interprets critical and warning values as relative in the range 0 .. 100%",
+                 help => "Base name, which when given, interprets critical and warning values as relative in the range 0 .. 100%. Must be given in the form mbean/attribute/path",
                 );
+    $np->add_arg(
+                 spec => "base-mbean=s",
+                 help => "Base MBean name, interprets critical and warning values as relative in the range 0 .. 100%. Requires a base-attribute, too",
+                );
+    $np->add_arg(
+                 spec => "base-attribute=s",
+                 help => "Base attribute for a relative check. Used together with base-mbean",
+                );
+    $np->add_arg(
+                 spec => "base-path=s",
+                 help => "Base path for relatie checks, where this path is used on the base attribute's value",
+                );    
     $np->add_arg(
                  spec => "unit=s",
                  help => "Unit of measurement of the data retreived. Recognized values are [B|KB|MN|GB|TB] for memory values and [us|ms|s|m|h|d] for time values"
@@ -768,6 +778,10 @@ sub add_nagios_np_args {
     $np->add_arg(
                  spec => "label|l=s",
                  help => "Label to be used for printing out the result of the check. Placeholders can be used."
+                );
+    $np->add_arg(
+                 spec => "perfdata=s",
+                 help => "Whether performance data should be omitted, which are included by default."
                 );
     $np->add_arg(
                  spec => "unknown-is-critical",
