@@ -96,7 +96,11 @@ sub get_requests {
     if ($self->base || $self->base_mbean) {
         if (!looks_like_number($self->base)) {
             # It looks like a number, so we will use the base literally
-            my $alias = JMX::Jmx4Perl::Alias->by_name($self->base);
+            my $alias;
+            
+            if ($self->base) {
+                $alias = JMX::Jmx4Perl::Alias->by_name($self->base);
+            }
             if ($alias) {
                 push @requests,new JMX::Jmx4Perl::Request(READ,$jmx->resolve_alias($self->base));
             } else {
@@ -360,6 +364,7 @@ sub _base_value {
     my $resp = shift @{$responses};
     my $req = shift @{$requests};
     $self->nagios_die($resp->{error}) if $resp->{error};
+    #print Dumper($req,$resp);
     return $self->_extract_value($req,$resp);
 }
 
@@ -463,7 +468,7 @@ sub _get_name {
             } else {
                 my $val = $self->value;
                 if ($val) {
-                    $name = "[" . $self->value . "]";
+                    $name = "[" . $val . "]";
                 } else {
                     my $a_or_o = $self->attribute || $self->operation || "";
                     my $p = $self->path ? "," . $self->path : "";
@@ -544,7 +549,7 @@ sub _split_attr_spec {
         $p =~ s|\\(.)|$1|sg;
         push @ret,$p;
     }    
-    return @ret;
+    return (shift(@ret),shift(@ret),join("/",@ret));
 }
 
 sub _check_threshold {
@@ -610,7 +615,7 @@ sub _exit_message {
     my $code = $args->{code};
     my $mode = $args->{mode};
     if ($code == CRITICAL || $code == WARNING) {
-        if ($self->base) {
+        if ($self->base || $self->base_mbean) {
             return $self->_format_label
               ('%n : Threshold \'%t\' failed for value %.2r% ('. &_placeholder($args,"v") .' %u / '.
                &_placeholder($args,"b") . ' %u)',$args);
@@ -623,7 +628,7 @@ sub _exit_message {
             }
         }
     } else {
-        if ($self->base) {
+        if ($self->base || $self->base_mbean) {
             return $self->_format_label('%n : In range %.2r% ('. &_placeholder($args,"v") .' %u / '.
                                         &_placeholder($args,"b") . ' %w)',$args);
         } else {

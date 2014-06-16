@@ -79,6 +79,17 @@ is($resp->status,200);
 $value = $jmx->get_attribute("jolokia.it:type=tabularData","Table2","Value0.0/Value0.1");
 is($value->{Column1},"Value0.0","First column");
 is($value->{Column2},"Value0.1","Second column");
-$value = $jmx->get_attribute("jolokia.it:type=tabularData","Table2","Value0.1/Value0.0");
-is($value,undef,"Path with no value");
+
+
+$req = new JMX::Jmx4Perl::Request(READ,"jolokia.it:type=tabularData","Table2","Value0.1/Value0.0");
+$resp = $jmx->request($req);
 #print Dumper($resp);
+$value = $resp->{value};
+is($value,undef,"Path with no value");
+
+$value = $jmx->get_attribute("jolokia.it:type=mxbean","MapWithComplexKey");
+is(scalar(keys %$value),2,"2 elements");
+ok($value->{indexNames}->[0],"key");
+is(@{$value->{values}},2,"2 values");
+ok($value->{values}->[0]->{key}->{number} =~ /^(1|2)$/,"key match");
+#print Dumper($value);
