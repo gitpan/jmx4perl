@@ -666,7 +666,8 @@ placeholders:
 
  %v   the absolute value 
  %f   the absolute value as floating point number
- %r   the relative value for relative calculations (--base)
+ %r   the relative value as percentage (--base)
+ %q   the relative value as ratio of value to base (--base)
  %u   the value's unit for the output when --unit is used (after shortening)
  %w   the base value's unit for the output when --unit is used (after shortening)
  %b   the absolut base value as it is used with --base 
@@ -1605,6 +1606,34 @@ there via the argument placeholders C<$0> and C<$1>). See L</"Parent checks">
 and L</"Parameterized checks"> for more information about check inheritance. 
 
 Multiple parents can be given by providing them in a comma separated list. 
+
+=item Script
+
+For complex checks which can not be realized with the configurations described
+until yet, it is possible to use a Perl script snippet to perfrom arbitrary
+logic. The content of this script is typically provided as an HERE-document
+(see example below). It comes with a predefined variable C<$j4p> which is an
+instance of L<JMX::Jmx4Perl> so that it can be used for a flexible access to
+the server. Note that this scriptlet is executed separately and doesn't not
+benefit from the optimization done for bulk or relative checks. Check
+parameters can be accessed as ${0}, ${1}, .. but since these are also valid
+Perl variables (and hence can be overwritten accidentially), it is recommended
+to assign them to local variable before using them. In summary, script based
+checks are powerful but might be expensive.
+
+Example:
+
+  Script <<EOT
+  
+  my $pools = $j4p->search("java.lang:type=MemoryPool,*");
+  my @matched_pools;
+  my $pattern = "${0}";
+  for my $pool (@$pools) {   
+     push @matched_pools,$pool if $pool =~ /$pattern/;   
+  }
+  return $j4p->get_attribute($matched_pools[0],"Usage","used");
+  
+  EOT
 
 =back
 

@@ -122,11 +122,7 @@ sub init {
     my $self = shift;
         
     croak "No URL provided" unless $self->cfg('url');
-    # We don't verify Hostnames by default, since the information we are
-    # sending is typically not critical. Also, we don't have yet a way to 
-    # configure a keystore, so this is the only chance for now. Ask me to add
-    # host certificate verification if wanted.
-    my $ua = JMX::Jmx4Perl::Agent::UserAgent->new(ssl_opts => { verify_hostname => 0 });
+    my $ua = JMX::Jmx4Perl::Agent::UserAgent->new();
     $ua->jjagent_config($self->{cfg});
     #push @{ $ua->requests_redirectable }, 'POST';
     $ua->timeout($self->cfg('timeout')) if $self->cfg('timeout');
@@ -360,7 +356,7 @@ sub request_url {
         # Nothing further to append.
     }
     # Squeeze multiple slashes
-    $req =~ s|(!/)?/+|$1/|g;
+    $req =~ s|((?:!/)?/)/*|$1|g;
     #print "R: $req\n";
 
     if ($req =~ $INVALID_PATH_CHARS || $request->{use_query}) {

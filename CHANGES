@@ -2,7 +2,19 @@
   - Fixed warning when using MBeanName (#31)
   - Fixed BaseMBean and formatting
   - Fixed relative checks when using MBean patterns
-  
+  - Added formatter '%f' to include a ratio of value to base without
+    multiplying by 100 like for '%r'
+  - Disabled OpenPGPVerifier since it doesn't support the new digest
+    algorithms used for signing the Jolokia artefacts (#32)
+  - Don't set ssl_opts if on LWP < 6 (#28)
+  - Fixed BaseMBean and BaseAttribute config directives (#25)
+  - Fixed regexp for squeezing trailing slashes (RT#89108)
+  - Fixed check definition for 'wls_channel_connections (RT#89107)
+  - Changed check 'memory_gc_time' to be a relative check to measure the 
+    relative amount taken for the GC. If you use this check (or a sub-check of this)
+    YOU NEED TO UPDATE YOUR THRESHOLDS (and regenerate the pn4p graphics)
+  - Fixed bug when using 0 thresholds in checks using parent checks (#38)
+  - Added support for '*' wildcard when navigation with cd for j4psh 
 
 1.07 (2013-04-16) 
   - Added more robust timeout for the Jmx4Perl Agent (requires Sys::SigAction)

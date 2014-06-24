@@ -216,7 +216,7 @@ sub extract_responses {
         $self->_update_error_stats($opts->{error_stat},$code) unless $code == OK;
         my ($base_conv,$base_unit) = $self->_normalize_value($base_value);
         $np->add_message($code,$self->_exit_message(code => $code,mode => $mode,rel_value => $rel_value, 
-                                                    value => $value_conv, unit => $unit,base => $base_conv, 
+                                                    value => $value_conv, unit => $unit, base => $base_conv, 
                                                     base_unit => $base_unit, prefix => $opts->{prefix}));            
     } else {
         # Performance data
@@ -549,7 +549,7 @@ sub _split_attr_spec {
         $p =~ s|\\(.)|$1|sg;
         push @ret,$p;
     }    
-    return (shift(@ret),shift(@ret),join("/",@ret));
+    return (shift(@ret),shift(@ret),@ret ? join("/",@ret) : undef);
 }
 
 sub _check_threshold {
@@ -568,7 +568,8 @@ sub _check_threshold {
           (
            defined($self->critical) ? (critical => $self->critical) : (),
            defined($self->warning) ? (warning => $self->warning) : ()
-          );            
+          );  
+        #print Dumper({check => $value,@ths});
         return (@ths ? $np->check_threshold(check => $value,@ths) : OK,"numeric");    
     } else {
         return
@@ -657,10 +658,13 @@ sub _format_label {
     my $self = shift;
     my $label = shift;
     my $args = shift;
-    # %r : relative value
+    # %r : relative value (as percent)
+    # %q : relative value (as floating point)
     # %v : value
+    # %f : value as floating point
     # %u : unit
     # %b : base value
+    # %w : base unit
     # %t : threshold failed ("" for OK or UNKNOWN)
     # %c : code ("OK", "WARNING", "CRITICAL", "UNKNOWN")
     # %d : delta
@@ -670,8 +674,10 @@ sub _format_label {
     foreach my $p (@parts) {
         if ($p =~ /^(\%[\w\.\-]*)(\w)$/) {
             my ($format,$what) = ($1,$2);
-            if ($what eq "r") {
-                $ret .= sprintf $format . "f",($args->{rel_value} || 0);
+            if ($what eq "r" || $what eq "q") {
+                my $val = $args->{rel_value} || 0;
+                $val = $what eq "r" ? $val : $val / 100; 
+                $ret .= sprintf $format . "f",$val;
             } elsif ($what eq "b") {
                 $ret .= sprintf $format . &_format_char($args->{base}),($args->{base} || 0);
             } elsif ($what eq "u" || $what eq "w") {
