@@ -441,9 +441,11 @@ sub _verify_response {
     my ($self,$req,$resp) = @_;
     my $np = $self->{np};
     if ($resp->is_error) {
-        my $stacktrace = $resp->stacktrace;
         my $extra = "";
-        $extra = ref($stacktrace) eq "ARRAY" ? join "\n",@$stacktrace : $stacktrace if $stacktrace;
+        if ($np->opts->{verbose}) {
+            my $stacktrace = $resp->stacktrace;
+            $extra = ref($stacktrace) eq "ARRAY" ? join "\n",@$stacktrace : $stacktrace if $stacktrace;
+        }
         $self->nagios_die("Error: ".$resp->status." ".$resp->error_text.$extra);
     }
     
@@ -515,7 +517,8 @@ sub _prepare_exec_args {
     # Merge CLI arguments and arguments from the configuration,
     # with CLI arguments taking precedence
     my @cli_args = @_;
-    my $config_args = $self->{config}->{args};
+    my $config_args = $self->{config}->{argument};
+    $config_args = [ $config_args ] unless ref($config_args) eq "ARRAY";
     my @args = ();
     if ($config_args) {
         my @c_args = (@$config_args);

@@ -492,9 +492,9 @@ only, so for complex attributes a path is I<required>.
 
 The return values of operations can be used for threshold checking, too. Since
 a JMX exposed operation can take arguments, these has to be provided as extra
-arguments on the command line or in the configuration. Due to the agent's
-nature and the protocol used (JSON), only simple typed arguments like strings,
-numbers or booleans ("true"/"false") can be used.
+arguments on the command line or in the configuration via the C<Args> configuration 
+directive. Due to the agent's nature and the protocol used (JSON), only simple typed 
+arguments like strings, numbers or booleans ("true"/"false") can be used.
 
 Example:
 
@@ -512,7 +512,7 @@ agent. For this purpose an JMX operation C<getNrQueriesFor> is exposed which
 takes three arguments: The type ("operation"/"attribute"), the MBean's
 ObjectName and the operation/attribute name which was called.
 
-If the opertion to be called is an I<overloaded operation> (i.e. an operation
+If the operation to be called is an I<overloaded operation> (i.e. an operation
 whose name exists multiple times on the same MBean but with different parameter
 types), the argument types must be given within parentheses:
 
@@ -1460,6 +1460,20 @@ parameter types), the argument types can be given within parentheses:
      ...
   </Check>
 
+=item Argument
+
+Used for specifying arguments to operation. This directive can be given multiple 
+times for multiple arguments. The order of the directive determine the order of the 
+arguments.
+
+  <Check>
+     ....
+     Operation checkUserCount(java.lang.String,java.lang.String)
+     Argument  Max
+     Argument  Morlock    
+  </Check>
+   
+
 =item Alias
 
 Alias, which must be known to C<check_jmx4perl>. Use C<jmx4perl aliases> to get
@@ -1538,6 +1552,13 @@ non-numeric thresholds. See L</"String checks"> for more details.
 
 The name to be used in the performance data. By default, a name is calculated
 based on the MBean and attribute/operation name.
+
+=item MultiCheckPrefix
+
+If this check is used within a multi check, this prefix is used to identify
+this particular check in the output of a multicheck. It can be set to an empty
+string if no prefix is required. By default the name as configured with C<Name>
+is used. 
 
 =item Label
 
@@ -1796,6 +1817,22 @@ A multi-check is referenced from the command line like any other check:
   $ check_jmx4perl .... --check all 90
 
 (90 is the argument which replaces C<$0> in the definition above). 
+
+The summary label in a multi check can be configured, too. 
+
+Example:
+
+  <MultiCheck memory>
+    SummaryOk All %n checks are OK
+    SummaryFailure %e of %n checks failed [%d]
+    ...
+  </MultiCheck>
+
+These format specifiers can be used:
+
+  %n        Number of all checks executed 
+  %e        Number of failed checks
+  %d        Details which checks failed
 
 =head2 Predefined checks
 
