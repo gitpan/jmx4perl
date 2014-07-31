@@ -3,12 +3,13 @@ package JMX::Jmx4Perl::Nagios::CheckJmx4Perl;
 use strict;
 use warnings;
 use JMX::Jmx4Perl::Nagios::SingleCheck;
+use JMX::Jmx4Perl::Nagios::MessageHandler;
 use JMX::Jmx4Perl;
 use JMX::Jmx4Perl::Request;
 use JMX::Jmx4Perl::Response;
 use Data::Dumper;
 use Nagios::Plugin;
-use Nagios::Plugin::Functions qw(:codes %STATUS_TEXT);
+use Nagios::Plugin::Functions qw(:codes %ERRORS %STATUS_TEXT);
 use Time::HiRes qw(gettimeofday tv_interval);
 use Carp;
 use Text::ParseWords;
@@ -90,22 +91,38 @@ sub execute {
             push @requests,@{$check->get_requests($jmx,\@ARGV)};            
         }
         my $responses = $self->_send_requests($jmx,@requests);
+        #print Dumper($responses);
         my @extra_requests = ();
         my $nr_checks = scalar(@{$self->{checks}});
         if ($nr_checks == 1) {
-            my @r = $self->{checks}->[0]->extract_responses($responses,\@requests,{ target => $target_config });
-            push @extra_requests,@r if @r;
+            eval {
+                my @r = $self->{checks}->[0]->extract_responses($responses,\@requests,{ target => $target_config });
+                push @extra_requests,@r if @r;
+            };
+            $self->nagios_die($@) if $@;
         } else {
             my $i = 1;
             for my $check (@{$self->{checks}}) {
                 # A check can consume more than one response
-                my @r = $check->extract_responses($responses,\@requests,
-                                                    { 
-                                                     target => $target_config, 
-                                                     prefix => $self->_multi_check_prefix($check,$i++,$nr_checks),
-                                                     error_stat => $error_stat
-                                                    });
-                push @extra_requests,@r if @r;
+                my $prefix = $self->_multi_check_prefix($check,$i++,$nr_checks);
+                eval {
+                    my @r = $check->extract_responses($responses,\@requests,
+                                                        { 
+                                                         target => $target_config, 
+                                                         prefix => $prefix,
+                                                         error_stat => $error_stat
+                                                        });
+                    push @extra_requests,@r if @r;
+                };
+                if ($@) {
+                    my $txt = $@;
+                    $txt =~ s/^(.*?)\n.*$/$1/s;
+                    my $code = $np->opts->{'unknown-is-critical'} ? CRITICAL : UNKNOWN;
+                    $check->update_error_stats($error_stat,$code);
+                    $prefix =~ s/\%c/$STATUS_TEXT{$code}/g;
+                    my $msg_handler = $np->{msg_handler} || $np; 
+                    $msg_handler->add_message($code,$prefix . $txt);
+                }
             }
         }
         # Send extra requests, e.g. for switching on the history
@@ -135,12 +152,13 @@ output, which can be extracted from NagiosPlugin object.
 
 =cut 
 
-sub do_exit {
+sub do_exit {    
     my $self = shift;
     my $error_stat = shift;
     my $np = $self->{np};
 
-    my ($code,$message) = $np->check_messages(join => "\n", join_all => "\n");
+    my $msg_handler = $np->{msg_handler} || $np; 
+    my ($code,$message) = $msg_handler->check_messages(join => "\n", join_all => "\n");
     ($code,$message) = $self->_prepare_multicheck_message($np,$code,$message,$error_stat) if scalar(@{$self->{checks}}) > 1;
     
     $np->nagios_exit($code, $message);
@@ -156,6 +174,7 @@ sub _prepare_multicheck_message {
     my $summary;
     my $labels = $self->{multi_check_labels} || {};
     my $nr_checks = scalar(@{$self->{checks}});
+    $code = $self->_check_for_UNKNOWN($error_stat,$code);
     if ($code eq OK) {
         $summary = $self->_format_multicheck_ok_summary($labels->{summary_ok} ||
                                                         "All %n checks OK",$nr_checks);
@@ -166,6 +185,14 @@ sub _prepare_multicheck_message {
                                                              $error_stat);
     }
     return ($code,$summary . "\n" . $message);
+}
+
+# UNKNOWN shadows everything else
+sub _check_for_UNKNOWN {
+    my $self = shift;
+    my $error_stat = shift;
+    my $code = shift;
+    return $error_stat->{UNKNOWN} && scalar(@$error_stat->{UNKNOWN}) ? UNKNOWN : $code;
 }
 
 sub _format_multicheck_ok_summary {
@@ -187,7 +214,7 @@ sub _format_multicheck_failure_summary {
 
     my $details = "";
     my $total_errors = 0;
-    for my $code (CRITICAL,WARNING,UNKNOWN) {
+    for my $code (UNKNOWN,CRITICAL,WARNING) {
         if (my $errs = $error_stat->{$code}) {
             $details .= scalar(@$errs) . " " . $STATUS_TEXT{$code} . " (" . join (",",@$errs) . "), ";
             $total_errors += scalar(@$errs);
@@ -677,6 +704,7 @@ sub create_nagios_plugin {
     $np->shortname(undef);
     $self->add_common_np_args($np);
     $self->add_nagios_np_args($np);
+    $np->{msg_handler} = new JMX::Jmx4Perl::Nagios::MessageHandler();
     $np->getopts();
     return $np;
 }
