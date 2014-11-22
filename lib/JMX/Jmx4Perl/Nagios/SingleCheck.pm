@@ -515,12 +515,13 @@ sub _prepare_exec_args {
     my $np = $self->{np};
     my $jmx = shift;
 
+    #print Dumper($self->{config});
     # Merge CLI arguments and arguments from the configuration,
     # with CLI arguments taking precedence
     my @cli_args = @_;
     my $config_args = $self->{config}->{argument};
     
-    $config_args = [ $config_args ] if defined($config_args) && !ref($config_args) eq "ARRAY";
+    $config_args = [ $config_args ] if defined($config_args) && ref($config_args) ne "ARRAY";
     my @args = ();
     if ($config_args) {
         my @c_args = (@$config_args);
